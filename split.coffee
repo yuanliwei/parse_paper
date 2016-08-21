@@ -21,12 +21,12 @@ class Sequence
 
 
 PartType = {
-  none: 0  # 没有类型
-  wrap: 1  # 换行符类型
-  text: 2  # 普通文本类型
-  sqNum : 3     # 数字类型的序号，题号 1. 2. 3. 4. 5. 6. ...
-  sqText : 4    # 文字类型的序号， 大题号 一、 二、 三、 四、 ......
-  sqOption : 5  # 选项序号， A, B, C, D, E, ...
+  none         : 0      # 没有类型
+  wrap         : 1      # 换行符类型
+  text         : 2      # 普通文本类型
+  sqNum        : 3      # 数字类型的序号，题号 1. 2. 3. 4. 5. 6. ...
+  sqText       : 4      # 文字类型的序号， 大题号 一、 二、 三、 四、 ......
+  sqOption     : 5      # 选项序号， A, B, C, D, E, ...
   qOption      : 6      # 单选题
   qQuestion    : 7      # 问答题
   qAnswer      : 8      # 答案
@@ -52,7 +52,8 @@ exports.run = (paperText) ->
   # partArr = splitOption partArr
 # 整理Part序号
   partArr = countIndex partArr
-
+# 合并多余的Part
+  partArr = mergePart partArr
   # console.dir partArr
 
   fs.writeFileSync('splitResult.txt', '\n')
@@ -64,6 +65,76 @@ exports.run = (paperText) ->
 
 print = ->
   console.log 'call print function'
+
+###
+    合并多余的Part
+###
+mergePart = (partArr) ->
+  arr = []
+  # 合并序号
+  partArr = mergeSeq partArr
+  arr = partArr
+  arr
+
+###
+    合并序号
+###
+mergeSeq = (partArr) ->
+  # 图片rId1
+  partArr = mergeSeqBySymbol(partArr, '25232', PartType.text)
+  # 图片rId11
+  partArr = mergeSeqBySymbol(partArr, '25233', PartType.text)
+  partArr
+
+###
+    根据符号模型和partType合并多余序号
+###
+mergeSeqBySymbol = (partArr, symbol, partType) ->
+  # symbol = '25233' # 图片rId11
+  typeArr = []
+  indexMap = {}
+  index = 0
+  for part in partArr
+    typeArr.push part.type
+    indexMap[index] = part.index
+    index += part.type.toString().length
+  typeStr = typeArr.join('')
+
+  loopIndex = 0
+  while(true)
+    console.log "start-----------------------------------"
+    start = typeStr.indexOf(symbol, loopIndex)
+    break if start == -1
+    loopIndex = start + 1
+    end = start + symbol.length
+    console.log "start : #{start} end : #{end} loopIndex : #{loopIndex} "
+    while(true)
+      nextStart = typeStr.indexOf(symbol, loopIndex)
+      console.log "next start : #{nextStart}"
+      if(nextStart != -1 && start + symbol.length > nextStart)
+        loopIndex = nextStart + 1
+        end = nextStart + symbol.length
+        console.log "next start : #{nextStart} end : #{end} loopIndex : #{loopIndex}"
+      else
+        break
+
+
+    realIndex = indexMap[start]
+
+    combineStr = []
+    firstPart = partArr[realIndex]
+    for i in [0...end - start]
+      part = partArr[realIndex + i]
+      combineStr.push part.raw
+      part.type = PartType.none
+    firstPart.type = partType
+    firstPart.raw = combineStr.join('')
+  arr = []
+  for part in partArr
+    arr.push(part) if part.type != PartType.none
+  arr = countIndex(arr)
+  arr
+
 
 ###
     分割换行
@@ -105,6 +176,7 @@ countIndex = (partArr) ->
     part.index = i
     last.next = part if last?
     part.last = last
+    part.type = PartType.text if part.type == PartType.none
     last = part
   partArr
 

@@ -1,4 +1,4 @@
-var Part, PartType, Sequence, countIndex, fs, initSeqArr, print, seqArr, splitSeq, splitWrap;
+var Part, PartType, Sequence, countIndex, fs, initSeqArr, mergePart, mergeSeq, mergeSeqBySymbol, print, seqArr, splitSeq, splitWrap;
 
 fs = require('fs');
 
@@ -72,6 +72,7 @@ exports.run = function(paperText) {
   partArr = splitWrap(partArr);
   partArr = splitSeq(partArr);
   partArr = countIndex(partArr);
+  partArr = mergePart(partArr);
   fs.writeFileSync('splitResult.txt', '\n');
   for (j = 0, len = partArr.length; j < len; j++) {
     part = partArr[j];
@@ -81,6 +82,90 @@ exports.run = function(paperText) {
 
 print = function() {
   return console.log('call print function');
+};
+
+
+/*
+    合并多余的Part
+ */
+
+mergePart = function(partArr) {
+  var arr;
+  arr = [];
+  partArr = mergeSeq(partArr);
+  arr = partArr;
+  return arr;
+};
+
+
+/*
+    合并序号
+ */
+
+mergeSeq = function(partArr) {
+  partArr = mergeSeqBySymbol(partArr, '25232', PartType.text);
+  partArr = mergeSeqBySymbol(partArr, '25233', PartType.text);
+  return partArr;
+};
+
+
+/*
+    根据符号模型和partType合并多余序号
+ */
+
+mergeSeqBySymbol = function(partArr, symbol, partType) {
+  var arr, combineStr, end, firstPart, i, index, indexMap, j, k, l, len, len1, loopIndex, nextStart, part, realIndex, ref, start, typeArr, typeStr;
+  typeArr = [];
+  indexMap = {};
+  index = 0;
+  for (j = 0, len = partArr.length; j < len; j++) {
+    part = partArr[j];
+    typeArr.push(part.type);
+    indexMap[index] = part.index;
+    index += part.type.toString().length;
+  }
+  typeStr = typeArr.join('');
+  loopIndex = 0;
+  while (true) {
+    console.log("start-----------------------------------");
+    start = typeStr.indexOf(symbol, loopIndex);
+    if (start === -1) {
+      break;
+    }
+    loopIndex = start + 1;
+    end = start + symbol.length;
+    console.log("start : " + start + " end : " + end + " loopIndex : " + loopIndex + " ");
+    while (true) {
+      nextStart = typeStr.indexOf(symbol, loopIndex);
+      console.log("next start : " + nextStart);
+      if (nextStart !== -1 && start + symbol.length > nextStart) {
+        loopIndex = nextStart + 1;
+        end = nextStart + symbol.length;
+        console.log("next start : " + nextStart + " end : " + end + " loopIndex : " + loopIndex);
+      } else {
+        break;
+      }
+    }
+    realIndex = indexMap[start];
+    combineStr = [];
+    firstPart = partArr[realIndex];
+    for (i = k = 0, ref = end - start; 0 <= ref ? k < ref : k > ref; i = 0 <= ref ? ++k : --k) {
+      part = partArr[realIndex + i];
+      combineStr.push(part.raw);
+      part.type = PartType.none;
+    }
+    firstPart.type = partType;
+    firstPart.raw = combineStr.join('');
+  }
+  arr = [];
+  for (l = 0, len1 = partArr.length; l < len1; l++) {
+    part = partArr[l];
+    if (part.type !== PartType.none) {
+      arr.push(part);
+    }
+  }
+  arr = countIndex(arr);
+  return arr;
 };
 
 
@@ -147,6 +232,9 @@ countIndex = function(partArr) {
       last.next = part;
     }
     part.last = last;
+    if (part.type === PartType.none) {
+      part.type = PartType.text;
+    }
     last = part;
   }
   return partArr;
