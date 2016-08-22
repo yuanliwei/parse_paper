@@ -54,6 +54,7 @@ PartType = {
   sqNum: 3,
   sqText: 4,
   sqOption: 5,
+  spBrackets: 5.1,
   qOption: 6,
   qQuestion: 7,
   qAnswer: 8,
@@ -63,7 +64,7 @@ PartType = {
 };
 
 exports.run = function(paperText) {
-  var j, len, part, partArr, rootPart;
+  var partArr, rootPart;
   console.log('run into run function');
   print();
   partArr = [];
@@ -73,11 +74,7 @@ exports.run = function(paperText) {
   partArr = splitSeq(partArr);
   partArr = countIndex(partArr);
   partArr = mergePart(partArr);
-  fs.writeFileSync('splitResult.txt', '\n');
-  for (j = 0, len = partArr.length; j < len; j++) {
-    part = partArr[j];
-    fs.appendFileSync('splitResult.txt', part.raw);
-  }
+  console.table(partArr);
 };
 
 print = function() {
@@ -103,8 +100,15 @@ mergePart = function(partArr) {
  */
 
 mergeSeq = function(partArr) {
-  partArr = mergeSeqBySymbol(partArr, '25232', PartType.text);
-  partArr = mergeSeqBySymbol(partArr, '25233', PartType.text);
+  partArr = mergeSeqBySymbol(partArr, '2,5,2,3,2,', PartType.text);
+  partArr = mergeSeqBySymbol(partArr, '2,5,2,3,3,', PartType.text);
+  partArr = mergeSeqBySymbol(partArr, '5.1,8,5.1,', PartType.qAnswer);
+  partArr = mergeSeqBySymbol(partArr, '5.1,9,5.1,', PartType.qAnalysis);
+  partArr = mergeSeqBySymbol(partArr, '5.1,10,5.1,', PartType.qCommen);
+  partArr = mergeSeqBySymbol(partArr, '5.1,11,5.1,', PartType.qDifficulty);
+  partArr = mergeSeqBySymbol(partArr, '2,2,', PartType.text);
+  partArr = mergeSeqBySymbol(partArr, '2,3,2,', PartType.text);
+  partArr = mergeSeqBySymbol(partArr, '2,4,2,', PartType.text);
   return partArr;
 };
 
@@ -114,7 +118,7 @@ mergeSeq = function(partArr) {
  */
 
 mergeSeqBySymbol = function(partArr, symbol, partType) {
-  var arr, combineStr, end, firstPart, i, index, indexMap, j, k, l, len, len1, loopIndex, nextStart, part, realIndex, ref, start, typeArr, typeStr;
+  var arr, combineStr, endPos, firstPart, i, index, indexMap, j, k, l, lastPos, len, len1, len2, len3, len4, loopIndex, m, n, o, part, pos, posArr, ref, ref1, symbolLength, temPosArr, temTypeArr, typeArr, typeStr;
   typeArr = [];
   indexMap = {};
   index = 0;
@@ -124,48 +128,62 @@ mergeSeqBySymbol = function(partArr, symbol, partType) {
     indexMap[index] = part.index;
     index += part.type.toString().length;
   }
-  typeStr = typeArr.join('');
+  typeStr = typeArr.join(',');
+  posArr = [];
   loopIndex = 0;
-  while (true) {
-    console.log("start-----------------------------------");
-    start = typeStr.indexOf(symbol, loopIndex);
-    if (start === -1) {
-      break;
+  temTypeArr = [];
+  symbolLength = symbol.split(',').length - 1;
+  if (!symbol.endsWith(',')) {
+    throw new Error("symbol : " + symbol + " 格式错误，应以“,”结尾！");
+  }
+  console.log("symbol length : " + symbolLength);
+  for (i = k = 0, len1 = partArr.length; k < len1; i = ++k) {
+    part = partArr[i];
+    temTypeArr.push(part.type + ",");
+    if (temTypeArr.length > symbolLength) {
+      temTypeArr.shift();
     }
-    loopIndex = start + 1;
-    end = start + symbol.length;
-    console.log("start : " + start + " end : " + end + " loopIndex : " + loopIndex + " ");
-    while (true) {
-      nextStart = typeStr.indexOf(symbol, loopIndex);
-      console.log("next start : " + nextStart);
-      if (nextStart !== -1 && start + symbol.length > nextStart) {
-        loopIndex = nextStart + 1;
-        end = nextStart + symbol.length;
-        console.log("next start : " + nextStart + " end : " + end + " loopIndex : " + loopIndex);
-      } else {
-        break;
-      }
+    if (temTypeArr.join('') === symbol) {
+      posArr.push({
+        start: i - symbolLength + 1,
+        end: i + 1
+      });
     }
-    realIndex = indexMap[start];
+  }
+  endPos = 0;
+  temPosArr = [];
+  for (i = l = 0, len2 = posArr.length; l < len2; i = ++l) {
+    pos = posArr[i];
+    if (pos.start < endPos) {
+      lastPos = temPosArr.pop();
+      lastPos.end = endPos = pos.end;
+      temPosArr.push(lastPos);
+    } else {
+      endPos = pos.end;
+      temPosArr.push(pos);
+    }
+  }
+  posArr = temPosArr;
+  for (m = 0, len3 = posArr.length; m < len3; m++) {
+    pos = posArr[m];
     combineStr = [];
-    firstPart = partArr[realIndex];
-    for (i = k = 0, ref = end - start; 0 <= ref ? k < ref : k > ref; i = 0 <= ref ? ++k : --k) {
-      part = partArr[realIndex + i];
-      combineStr.push(part.raw);
+    firstPart = partArr[pos.start];
+    for (i = n = ref = pos.start, ref1 = pos.end; ref <= ref1 ? n < ref1 : n > ref1; i = ref <= ref1 ? ++n : --n) {
+      part = partArr[i];
       part.type = PartType.none;
+      combineStr.push(part.raw);
     }
-    firstPart.type = partType;
     firstPart.raw = combineStr.join('');
+    firstPart.type = partType;
   }
   arr = [];
-  for (l = 0, len1 = partArr.length; l < len1; l++) {
-    part = partArr[l];
+  for (o = 0, len4 = partArr.length; o < len4; o++) {
+    part = partArr[o];
     if (part.type !== PartType.none) {
       arr.push(part);
     }
   }
-  arr = countIndex(arr);
-  return arr;
+  return arr = countIndex(arr);
 };
 
 
@@ -243,7 +261,7 @@ countIndex = function(partArr) {
 seqArr = [];
 
 initSeqArr = function() {
-  var index, j, k, l, last, len, len1, len2, s, seqs, sequence;
+  var index, j, k, l, last, len, len1, len2, len3, m, s, seqs, sequence;
   seqs = '123456789';
   last = null;
   for (index = j = 0, len = seqs.length; j < len; index = ++j) {
@@ -274,6 +292,18 @@ initSeqArr = function() {
     s = seqs[index];
     console.log("s = " + s);
     sequence = new Sequence(PartType.sqOption, s, last, null, index);
+    seqArr.push(sequence);
+    if (last != null) {
+      last.next = sequence;
+    }
+    last = sequence;
+  }
+  seqs = '【】';
+  last = null;
+  for (index = m = 0, len3 = seqs.length; m < len3; index = ++m) {
+    s = seqs[index];
+    console.log("s = " + s);
+    sequence = new Sequence(PartType.spBrackets, s, last, null, index);
     seqArr.push(sequence);
     if (last != null) {
       last.next = sequence;

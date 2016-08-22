@@ -27,6 +27,8 @@ PartType = {
   sqNum        : 3      # 数字类型的序号，题号 1. 2. 3. 4. 5. 6. ...
   sqText       : 4      # 文字类型的序号， 大题号 一、 二、 三、 四、 ......
   sqOption     : 5      # 选项序号， A, B, C, D, E, ...
+  spBrackets   : 5.1    # 括号 【， 】
+
   qOption      : 6      # 单选题
   qQuestion    : 7      # 问答题
   qAnswer      : 8      # 答案
@@ -55,12 +57,13 @@ exports.run = (paperText) ->
 # 合并多余的Part
   partArr = mergePart partArr
   # console.dir partArr
+  console.table partArr
 
-  fs.writeFileSync('splitResult.txt', '\n')
+  # fs.writeFileSync('splitResult.txt', '\n')
 
-  for part in partArr
-    # console.dir " #{part.raw}"
-    fs.appendFileSync('splitResult.txt', part.raw)
+  # for part in partArr
+  #   # console.dir " #{part.raw}"
+  #   fs.appendFileSync('splitResult.txt', part.raw)
   return
 
 print = ->
@@ -81,10 +84,25 @@ mergePart = (partArr) ->
 ###
 mergeSeq = (partArr) ->
   # 图片rId1
-  partArr = mergeSeqBySymbol(partArr, '25232', PartType.text)
+  partArr = mergeSeqBySymbol(partArr, '2,5,2,3,2,', PartType.text)
   # 图片rId11
-  partArr = mergeSeqBySymbol(partArr, '25233', PartType.text)
+  partArr = mergeSeqBySymbol(partArr, '2,5,2,3,3,', PartType.text)
+  # 【答案】
+  partArr = mergeSeqBySymbol(partArr, '5.1,8,5.1,', PartType.qAnswer)
+  # 【解析】
+  partArr = mergeSeqBySymbol(partArr, '5.1,9,5.1,', PartType.qAnalysis)
+  # 【点评】
+  partArr = mergeSeqBySymbol(partArr, '5.1,10,5.1,', PartType.qCommen)
+  # 【难度】
+  partArr = mergeSeqBySymbol(partArr, '5.1,11,5.1,', PartType.qDifficulty)
+  # 合并纯文本
+  partArr = mergeSeqBySymbol(partArr, '2,2,', PartType.text)
+  # 合并夹在文本中间的数字  "将","1","0个人分"
+  partArr = mergeSeqBySymbol(partArr, '2,3,2,', PartType.text)
+  # 合并夹在文本之间的中文数字 "招生强手营第","一","阶段的讲义中，
+  partArr = mergeSeqBySymbol(partArr, '2,4,2,', PartType.text)
   partArr
+
 
 ###
     根据符号模型和partType合并多余序号
@@ -98,43 +116,48 @@ mergeSeqBySymbol = (partArr, symbol, partType) ->
     typeArr.push part.type
     indexMap[index] = part.index
     index += part.type.toString().length
-  typeStr = typeArr.join('')
+  typeStr = typeArr.join(',')
 
+# 这里改成先计算位置再合并的方式
+  posArr = []
   loopIndex = 0
-  while(true)
-    console.log "start-----------------------------------"
-    start = typeStr.indexOf(symbol, loopIndex)
-    break if start == -1
-    loopIndex = start + 1
-    end = start + symbol.length
-    console.log "start : #{start} end : #{end} loopIndex : #{loopIndex} "
-    while(true)
-      nextStart = typeStr.indexOf(symbol, loopIndex)
-      console.log "next start : #{nextStart}"
-      if(nextStart != -1 && start + symbol.length > nextStart)
-        loopIndex = nextStart + 1
-        end = nextStart + symbol.length
-        console.log "next start : #{nextStart} end : #{end} loopIndex : #{loopIndex}"
-      else
-        break
+  temTypeArr = []
+  symbolLength = symbol.split(',').length - 1
+  throw new Error("symbol : #{symbol} 格式错误，应以“,”结尾！") if !symbol.endsWith(',')
+  console.log "symbol length : #{symbolLength}"
+  for part, i in partArr
+    temTypeArr.push "#{part.type},"
+    temTypeArr.shift() if temTypeArr.length > symbolLength
+    if temTypeArr.join('') == symbol
+      # start <= pos < end
+      posArr.push {start : i - symbolLength + 1, end : i + 1 }
 
-
-    realIndex = indexMap[start]
-
+  # 检查posArr是否有重叠
+  endPos = 0
+  temPosArr = []
+  for pos, i in posArr
+    if pos.start < endPos
+      lastPos = temPosArr.pop()
+      lastPos.end = endPos = pos.end
+      temPosArr.push lastPos
+    else
+      endPos = pos.end
+      temPosArr.push pos
+  posArr = temPosArr
+  for pos in posArr
     combineStr = []
-    firstPart = partArr[realIndex]
-    for i in [0...end - start]
-      part = partArr[realIndex + i]
-      combineStr.push part.raw
+    firstPart = partArr[pos.start]
+    for i in [pos.start...pos.end]
+      part = partArr[i]
       part.type = PartType.none
-    firstPart.type = partType
+      combineStr.push part.raw
     firstPart.raw = combineStr.join('')
+    firstPart.type = partType
+
   arr = []
   for part in partArr
     arr.push(part) if part.type != PartType.none
   arr = countIndex(arr)
-  arr
-
 
 ###
     分割换行
@@ -205,6 +228,14 @@ initSeqArr = ->
   for s, index in seqs
     console.log "s = #{s}"
     sequence = new Sequence(PartType.sqOption, s, last, null, index)
+    seqArr.push sequence
+    last.next = sequence if last?
+    last = sequence
+  seqs = '【】'
+  last = null
+  for s, index in seqs
+    console.log "s = #{s}"
+    sequence = new Sequence(PartType.spBrackets, s, last, null, index)
     seqArr.push sequence
     last.next = sequence if last?
     last = sequence
