@@ -144,6 +144,8 @@ mergeSeqBySymbol = (partArr, symbol, partType) ->
       endPos = pos.end
       temPosArr.push pos
   posArr = temPosArr
+
+  # 合并同一类型的Part
   for pos in posArr
     combineStr = []
     firstPart = partArr[pos.start]
