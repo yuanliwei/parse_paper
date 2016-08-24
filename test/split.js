@@ -1,4 +1,4 @@
-var EleType, Element, Part, PartType, Sequence, countIndex, fs, initSeqArr, mergePart, mergeSeq, mergeSeqBySymbol, mergeSeqBySymbolIgnoreSpace, print, seqArr, splitSeq, splitWrap, tohtml;
+var EleType, Element, Part, PartType, Sequence, countIndex, fs, initSeqArr, mergePart, mergeSeq, mergeSeqBySymbol, mergeSeqBySymbolRegex, print, seqArr, splitSeq, splitSpace, splitWrap, tohtml;
 
 fs = require('fs');
 
@@ -68,6 +68,7 @@ Element = (function() {
 PartType = {
   none: 0,
   wrap: 1,
+  space: 1.1,
   text: 2,
   sqNum: 3,
   sqText: 4,
@@ -100,6 +101,7 @@ exports.run = function(paperText) {
   rootPart = new Part(PartType.none, paperText, null, null, 0);
   partArr.push(rootPart);
   partArr = splitWrap(partArr);
+  partArr = splitSpace(partArr);
   partArr = splitSeq(partArr);
   partArr = countIndex(partArr);
   partArr = mergePart(partArr);
@@ -135,8 +137,12 @@ mergeSeq = function(partArr) {
   partArr = mergeSeqBySymbol(partArr, '2,5,2,3,3,3,', PartType.text);
   partArr = mergeSeqBySymbol(partArr, '2,5,2,3,2,', PartType.text);
   partArr = mergeSeqBySymbol(partArr, '2,5,2,3,3,', PartType.text);
+  partArr = mergeSeqBySymbol(partArr, '2,1.1,2,', PartType.text);
+  partArr = mergeSeqBySymbol(partArr, '1.1,2,', PartType.text);
+  partArr = mergeSeqBySymbol(partArr, '2,1.1,', PartType.text);
   partArr = mergeSeqBySymbol(partArr, '5.1,8,5.1,', PartType.qAnswer);
   partArr = mergeSeqBySymbol(partArr, '5.1,9,5.1,', PartType.qAnalysis);
+  partArr = mergeSeqBySymbolRegex(partArr, '5.1,(1.1,)*9,(1.1,)*5.1,', PartType.qAnalysis);
   partArr = mergeSeqBySymbol(partArr, '5.1,10,5.1,', PartType.qCommen);
   partArr = mergeSeqBySymbol(partArr, '5.1,11,5.1,', PartType.qDifficulty);
   partArr = mergeSeqBySymbol(partArr, '2,2,', PartType.text);
@@ -222,10 +228,19 @@ mergeSeqBySymbol = function(partArr, symbol, partType) {
 
 /*
     根据符号模型和partType合并多余序号 忽略空白字符
+    5.1,(1.1,)*9,(1.1,)*5.1,
+
+    todo 使用定长字符串
+    5.1,9,1.1,1.1,5.1,
+    5.1,1.1,1.1,9,1.1,1.1,5.1,
+    5.1,1.1,1.1,9,1.1,5.1,
+    5.1,1.1,9,1.1,5.1,
+    5.1,9,1.1,5.1,
+    5.1,9,5.1,
  */
 
-mergeSeqBySymbolIgnoreSpace = function(partArr, symbol, partType) {
-  var arr, combineStr, endPos, firstPart, i, index, indexMap, j, k, l, lastPos, len, len1, len2, len3, len4, loopIndex, m, n, o, part, pos, posArr, ref, ref1, symbolLength, temPosArr, temTypeArr, typeArr, typeStr;
+mergeSeqBySymbolRegex = function(partArr, symbol, partType) {
+  var arr, combineStr, endPos, firstPart, i, index, indexMap, j, k, l, lastPos, len, len1, len2, len3, len4, loopIndex, m, n, o, part, pos, posArr, ref, ref1, regex, symbolLength, temPosArr, temTypeArr, typeArr, typeStr;
   typeArr = [];
   indexMap = {};
   index = 0;
@@ -244,13 +259,14 @@ mergeSeqBySymbolIgnoreSpace = function(partArr, symbol, partType) {
     throw new Error("symbol : " + symbol + " 格式错误，应以“,”结尾！");
   }
   console.log("symbol length : " + symbolLength);
+  regex = new RegExp(symbol);
   for (i = k = 0, len1 = partArr.length; k < len1; i = ++k) {
     part = partArr[i];
     temTypeArr.push(part.type + ",");
     if (temTypeArr.length > symbolLength) {
       temTypeArr.shift();
     }
-    if (temTypeArr.join('') === symbol) {
+    if (regex.test(temTypeArr.join(''))) {
       posArr.push({
         start: i - symbolLength + 1,
         end: i + 1
@@ -313,6 +329,31 @@ splitWrap = function(partArr) {
       sItem = spArr[k];
       arr.push(new Part(PartType.none, sItem, null, null, index++));
       arr.push(new Part(PartType.wrap, "<br>", null, null, index++));
+    }
+  }
+  return arr;
+};
+
+
+/*
+    分割空格
+ */
+
+splitSpace = function(partArr) {
+  var arr, index, j, k, len, len1, part, sItem, spArr;
+  arr = [];
+  index = 0;
+  for (j = 0, len = partArr.length; j < len; j++) {
+    part = partArr[j];
+    if (part.type !== PartType.none) {
+      arr.push(part);
+      continue;
+    }
+    spArr = part.raw.replace(/\r\n/g, '\n').split(' ');
+    for (k = 0, len1 = spArr.length; k < len1; k++) {
+      sItem = spArr[k];
+      arr.push(new Part(PartType.none, sItem, null, null, index++));
+      arr.push(new Part(PartType.space, "<space>", null, null, index++));
     }
   }
   return arr;

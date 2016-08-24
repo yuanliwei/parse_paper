@@ -27,6 +27,7 @@ class Element
 PartType = {
   none         : 0      # 没有类型
   wrap         : 1      # 换行符类型
+  space        : 1.1    # 空格符类型
   text         : 2      # 普通文本类型
   sqNum        : 3      # 数字类型的序号，题号 1. 2. 3. 4. 5. 6. ...
   sqText       : 4      # 文字类型的序号， 大题号 一、 二、 三、 四、 ......
@@ -63,6 +64,8 @@ exports.run = (paperText) ->
 
 # 分割换行符
   partArr = splitWrap partArr
+# 分割空格符
+  partArr = splitSpace partArr
 # 分割题号
   partArr = splitSeq partArr
 # 分割选项
@@ -111,11 +114,15 @@ mergeSeq = (partArr) ->
   partArr = mergeSeqBySymbol(partArr, '2,5,2,3,2,', PartType.text)
   # 图片rId11
   partArr = mergeSeqBySymbol(partArr, '2,5,2,3,3,', PartType.text)
+  # 夹在文本中的空格
+  partArr = mergeSeqBySymbol(partArr, '2,1.1,2,', PartType.text)
+  partArr = mergeSeqBySymbol(partArr, '1.1,2,', PartType.text)
+  partArr = mergeSeqBySymbol(partArr, '2,1.1,', PartType.text)
   # 【答案】
   partArr = mergeSeqBySymbol(partArr, '5.1,8,5.1,', PartType.qAnswer)
   # 【解析】
   partArr = mergeSeqBySymbol(partArr, '5.1,9,5.1,', PartType.qAnalysis)
-  # partArr = mergeSeqBySymbolReg(partArr, '5.1,9,5.1,', PartType.qAnalysis)
+  partArr = mergeSeqBySymbolRegex(partArr, '5.1,(1.1,)*9,(1.1,)*5.1,', PartType.qAnalysis)
   # 【点评】
   partArr = mergeSeqBySymbol(partArr, '5.1,10,5.1,', PartType.qCommen)
   # 【难度】
@@ -189,8 +196,17 @@ mergeSeqBySymbol = (partArr, symbol, partType) ->
 
 ###
     根据符号模型和partType合并多余序号 忽略空白字符
+    5.1,(1.1,)*9,(1.1,)*5.1,
+
+    todo 使用定长字符串
+    5.1,9,1.1,1.1,5.1,
+    5.1,1.1,1.1,9,1.1,1.1,5.1,
+    5.1,1.1,1.1,9,1.1,5.1,
+    5.1,1.1,9,1.1,5.1,
+    5.1,9,1.1,5.1,
+    5.1,9,5.1,
 ###
-mergeSeqBySymbolIgnoreSpace = (partArr, symbol, partType) ->
+mergeSeqBySymbolRegex = (partArr, symbol, partType) ->
   # symbol = '25233' # 图片rId11
   typeArr = []
   indexMap = {}
@@ -208,10 +224,13 @@ mergeSeqBySymbolIgnoreSpace = (partArr, symbol, partType) ->
   symbolLength = symbol.split(',').length - 1
   throw new Error("symbol : #{symbol} 格式错误，应以“,”结尾！") if !symbol.endsWith(',')
   console.log "symbol length : #{symbolLength}"
+  regex = new RegExp(symbol)
   for part, i in partArr
     temTypeArr.push "#{part.type},"
     temTypeArr.shift() if temTypeArr.length > symbolLength
-    if temTypeArr.join('') == symbol
+    # throw new Error("ooooooooooooooooooooooooo")
+    # if temTypeArr.join('') == symbol
+    if regex.test(temTypeArr.join(''))
       # start <= pos < end
       posArr.push {start : i - symbolLength + 1, end : i + 1 }
 
@@ -258,6 +277,22 @@ splitWrap = (partArr) ->
     for sItem in spArr
       arr.push new Part(PartType.none, sItem, null, null, index++ )
       arr.push new Part(PartType.wrap, "<br>", null, null, index++ )
+  arr
+
+###
+    分割空格
+###
+splitSpace = (partArr) ->
+  arr = []
+  index = 0
+  for part in partArr
+    if part.type != PartType.none
+      arr.push part
+      continue
+    spArr = part.raw.replace(/\r\n/g,'\n').split(' ')
+    for sItem in spArr
+      arr.push new Part(PartType.none, sItem, null, null, index++ )
+      arr.push new Part(PartType.space, "<space>", null, null, index++ )
   arr
 
 ###
