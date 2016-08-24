@@ -1,13 +1,13 @@
-var EleType, Element, Part, PartType, Sequence, countIndex, fs, initSeqArr, mergePart, mergeSeq, mergeSeqBySymbol, mergeSeqBySymbolRegex, print, seqArr, splitSeq, splitSpace, splitWrap, tohtml;
+var EleType, Element, Part, PartType, Sequence, countIndex, fs, initSeqArr, mergePart, mergeSeq, mergeSeqBySymbol, mergeSeqBySymbolRegex, print, seqArr, splitNum, splitSeq, splitSpace, splitStr, splitWrap, tohtml;
 
 fs = require('fs');
 
 tohtml = require('./tohtml');
 
 Part = (function() {
-  function Part(type, raw, last1, next, index1) {
+  function Part(type, raw1, last1, next, index1) {
     this.type = type;
-    this.raw = raw;
+    this.raw = raw1;
     this.last = last1;
     this.next = next;
     this.index = index1;
@@ -18,9 +18,9 @@ Part = (function() {
 })();
 
 Sequence = (function() {
-  function Sequence(type, raw, last1, next, index1) {
+  function Sequence(type, raw1, last1, next, index1) {
     this.type = type;
-    this.raw = raw;
+    this.raw = raw1;
     this.last = last1;
     this.next = next;
     this.index = index1;
@@ -66,31 +66,31 @@ Element = (function() {
 })();
 
 PartType = {
-  none: 0,
-  wrap: 1,
-  space: 1.1,
-  text: 2,
-  sqNum: 3,
-  sqText: 4,
-  sqOption: 5,
-  spBrackets: 5.1,
-  qOption: 6,
-  qQuestion: 7,
-  qAnswer: 8,
-  qAnalysis: 9,
-  qCommen: 10,
-  qDifficulty: 11
+  none: '1000',
+  wrap: '1010',
+  space: '1011',
+  text: '1020',
+  sqNum: '1030',
+  sqText: '1040',
+  sqOption: '1050',
+  spBrackets: '1051',
+  qOption: '1060',
+  qQuestion: '1070',
+  qAnswer: '1080',
+  qAnalysis: '1090',
+  qCommen: '1100',
+  qDifficulty: '1110'
 };
 
 EleType = {
-  none: 0,
-  qNo: 1,
-  qText: 2,
-  qOption: 3,
-  qAnswer: 4,
-  qAnalysis: 5,
-  qCommen: 6,
-  qDifficulty: 7
+  none: '1000',
+  qNo: '1010',
+  qText: '1020',
+  qOption: '1030',
+  qAnswer: '1040',
+  qAnalysis: '1050',
+  qCommen: '1060',
+  qDifficulty: '1070'
 };
 
 exports.run = function(paperText) {
@@ -102,6 +102,7 @@ exports.run = function(paperText) {
   partArr.push(rootPart);
   partArr = splitWrap(partArr);
   partArr = splitSpace(partArr);
+  partArr = splitNum(partArr);
   partArr = splitSeq(partArr);
   partArr = countIndex(partArr);
   partArr = mergePart(partArr);
@@ -134,20 +135,25 @@ mergePart = function(partArr) {
  */
 
 mergeSeq = function(partArr) {
-  partArr = mergeSeqBySymbol(partArr, '2,5,2,3,3,3,', PartType.text);
-  partArr = mergeSeqBySymbol(partArr, '2,5,2,3,2,', PartType.text);
-  partArr = mergeSeqBySymbol(partArr, '2,5,2,3,3,', PartType.text);
-  partArr = mergeSeqBySymbol(partArr, '2,1.1,2,', PartType.text);
-  partArr = mergeSeqBySymbol(partArr, '1.1,2,', PartType.text);
-  partArr = mergeSeqBySymbol(partArr, '2,1.1,', PartType.text);
-  partArr = mergeSeqBySymbol(partArr, '5.1,8,5.1,', PartType.qAnswer);
-  partArr = mergeSeqBySymbol(partArr, '5.1,9,5.1,', PartType.qAnalysis);
-  partArr = mergeSeqBySymbolRegex(partArr, '5.1,(1.1,)*9,(1.1,)*5.1,', PartType.qAnalysis);
-  partArr = mergeSeqBySymbol(partArr, '5.1,10,5.1,', PartType.qCommen);
-  partArr = mergeSeqBySymbol(partArr, '5.1,11,5.1,', PartType.qDifficulty);
-  partArr = mergeSeqBySymbol(partArr, '2,2,', PartType.text);
-  partArr = mergeSeqBySymbol(partArr, '2,3,2,', PartType.text);
-  partArr = mergeSeqBySymbol(partArr, '2,4,2,', PartType.text);
+  partArr = mergeSeqBySymbol(partArr, '1020,1050,1020,1030,1030,1030', PartType.text);
+  partArr = mergeSeqBySymbol(partArr, '1020,1050,1020,1030,1020,1030', PartType.text);
+  partArr = mergeSeqBySymbol(partArr, '1020,1050,1020,1030,1030,1020', PartType.text);
+  partArr = mergeSeqBySymbol(partArr, '1020,1050,1020,1030,1030', PartType.text);
+  partArr = mergeSeqBySymbol(partArr, '1020,1050,1020,1030', PartType.text);
+  partArr = mergeSeqBySymbol(partArr, '1020,1011,1020', PartType.text);
+  partArr = mergeSeqBySymbol(partArr, '1020,1011', PartType.text);
+  partArr = mergeSeqBySymbol(partArr, '1011,1020', PartType.text);
+  partArr = mergeSeqBySymbol(partArr, '1020,1010,1020,1010,1020', PartType.text);
+  partArr = mergeSeqBySymbol(partArr, '1020,1010,1020', PartType.text);
+  partArr = mergeSeqBySymbol(partArr, '1020,1060,1020', PartType.text);
+  partArr = mergeSeqBySymbol(partArr, '1020,1080,1020', PartType.text);
+  partArr = mergeSeqBySymbol(partArr, '1051,1080,1051', PartType.qAnswer);
+  partArr = mergeSeqBySymbol(partArr, '1051,1090,1051', PartType.qAnalysis);
+  partArr = mergeSeqBySymbol(partArr, '1020,1090,1020', PartType.text);
+  partArr = mergeSeqBySymbol(partArr, '1051,1100,1051', PartType.qCommen);
+  partArr = mergeSeqBySymbol(partArr, '1051,1110,1051', PartType.qDifficulty);
+  partArr = mergeSeqBySymbol(partArr, '1020,1040,1020', PartType.text);
+  partArr = mergeSeqBySymbol(partArr, '1020,1030,1020', PartType.text);
   return partArr;
 };
 
@@ -157,41 +163,32 @@ mergeSeq = function(partArr) {
  */
 
 mergeSeqBySymbol = function(partArr, symbol, partType) {
-  var arr, combineStr, endPos, firstPart, i, index, indexMap, j, k, l, lastPos, len, len1, len2, len3, len4, loopIndex, m, n, o, part, pos, posArr, ref, ref1, symbolLength, temPosArr, temTypeArr, typeArr, typeStr;
+  var arr, combineStr, endPos, firstPart, i, index, j, k, l, lastPos, len, len1, len2, len3, m, n, part, pos, posArr, raw, ref, ref1, sbls, symbolStr, temPosArr, typeArr, typeLength, typeStr;
+  typeLength = PartType.none.length;
   typeArr = [];
-  indexMap = {};
-  index = 0;
   for (j = 0, len = partArr.length; j < len; j++) {
     part = partArr[j];
     typeArr.push(part.type);
-    indexMap[index] = part.index;
-    index += part.type.toString().length;
   }
-  typeStr = typeArr.join(',');
+  typeStr = typeArr.join('');
+  sbls = symbol.split(',');
+  symbolStr = sbls.join('');
+  lastPos = 0;
   posArr = [];
-  loopIndex = 0;
-  temTypeArr = [];
-  symbolLength = symbol.split(',').length - 1;
-  if (!symbol.endsWith(',')) {
-    throw new Error("symbol : " + symbol + " 格式错误，应以“,”结尾！");
-  }
-  console.log("symbol length : " + symbolLength);
-  for (i = k = 0, len1 = partArr.length; k < len1; i = ++k) {
-    part = partArr[i];
-    temTypeArr.push(part.type + ",");
-    if (temTypeArr.length > symbolLength) {
-      temTypeArr.shift();
+  while (true) {
+    index = typeStr.indexOf(symbolStr, lastPos);
+    if (index === -1) {
+      break;
     }
-    if (temTypeArr.join('') === symbol) {
-      posArr.push({
-        start: i - symbolLength + 1,
-        end: i + 1
-      });
-    }
+    lastPos = index + 1;
+    posArr.push({
+      start: index / typeLength,
+      end: index / typeLength + sbls.length
+    });
   }
   endPos = 0;
   temPosArr = [];
-  for (i = l = 0, len2 = posArr.length; l < len2; i = ++l) {
+  for (i = k = 0, len1 = posArr.length; k < len1; i = ++k) {
     pos = posArr[i];
     if (pos.start < endPos) {
       lastPos = temPosArr.pop();
@@ -203,21 +200,25 @@ mergeSeqBySymbol = function(partArr, symbol, partType) {
     }
   }
   posArr = temPosArr;
-  for (m = 0, len3 = posArr.length; m < len3; m++) {
-    pos = posArr[m];
+  for (l = 0, len2 = posArr.length; l < len2; l++) {
+    pos = posArr[l];
     combineStr = [];
     firstPart = partArr[pos.start];
-    for (i = n = ref = pos.start, ref1 = pos.end; ref <= ref1 ? n < ref1 : n > ref1; i = ref <= ref1 ? ++n : --n) {
+    for (i = m = ref = pos.start, ref1 = pos.end; ref <= ref1 ? m < ref1 : m > ref1; i = ref <= ref1 ? ++m : --m) {
       part = partArr[i];
+      raw = part.raw;
+      if (part.type === PartType.space) {
+        raw = ' ';
+      }
       part.type = PartType.none;
-      combineStr.push(part.raw);
+      combineStr.push(raw);
     }
     firstPart.raw = combineStr.join('');
     firstPart.type = partType;
   }
   arr = [];
-  for (o = 0, len4 = partArr.length; o < len4; o++) {
-    part = partArr[o];
+  for (n = 0, len3 = partArr.length; n < len3; n++) {
+    part = partArr[n];
     if (part.type !== PartType.none) {
       arr.push(part);
     }
@@ -240,38 +241,36 @@ mergeSeqBySymbol = function(partArr, symbol, partType) {
  */
 
 mergeSeqBySymbolRegex = function(partArr, symbol, partType) {
-  var arr, combineStr, endPos, firstPart, i, index, indexMap, j, k, l, lastPos, len, len1, len2, len3, len4, loopIndex, m, n, o, part, pos, posArr, ref, ref1, regex, symbolLength, temPosArr, temTypeArr, typeArr, typeStr;
+  var arr, combineStr, endPos, firstPart, i, index, j, k, l, lastPos, len, len1, len2, len3, len4, m, n, o, part, pos, posArr, ref, ref1, s, sbl, sblArr, sblLength, sbls, sl, symbolStr, temPosArr, typeArr, typeLength, typeStr;
+  s = "000000";
+  sl = s.length;
   typeArr = [];
-  indexMap = {};
-  index = 0;
   for (j = 0, len = partArr.length; j < len; j++) {
     part = partArr[j];
-    typeArr.push(part.type);
-    indexMap[index] = part.index;
-    index += part.type.toString().length;
+    typeLength = part.type.toString().length;
+    typeArr.push(s.substring(0, sl - typeLength) + part.type);
   }
-  typeStr = typeArr.join(',');
+  typeStr = typeArr.join('');
+  sbls = symbol.split(',');
+  sblArr = [];
+  for (k = 0, len1 = sbls.length; k < len1; k++) {
+    sbl = sbls[k];
+    sblLength = sbl.length;
+    sblArr.push(s.substring(0, sl - sblLength) + sbl);
+  }
+  symbolStr = sblArr.join('');
+  lastPos = 0;
   posArr = [];
-  loopIndex = 0;
-  temTypeArr = [];
-  symbolLength = symbol.split(',').length - 1;
-  if (!symbol.endsWith(',')) {
-    throw new Error("symbol : " + symbol + " 格式错误，应以“,”结尾！");
-  }
-  console.log("symbol length : " + symbolLength);
-  regex = new RegExp(symbol);
-  for (i = k = 0, len1 = partArr.length; k < len1; i = ++k) {
-    part = partArr[i];
-    temTypeArr.push(part.type + ",");
-    if (temTypeArr.length > symbolLength) {
-      temTypeArr.shift();
+  while (true) {
+    index = typeStr.indexOf(symbolStr, lastPos);
+    if (index === -1) {
+      break;
     }
-    if (regex.test(temTypeArr.join(''))) {
-      posArr.push({
-        start: i - symbolLength + 1,
-        end: i + 1
-      });
-    }
+    lastPos = index + 1;
+    posArr.push({
+      start: index / sl,
+      end: index / sl + sbls.length
+    });
   }
   endPos = 0;
   temPosArr = [];
@@ -349,11 +348,79 @@ splitSpace = function(partArr) {
       arr.push(part);
       continue;
     }
-    spArr = part.raw.replace(/\r\n/g, '\n').split(' ');
+    spArr = part.raw.split(' ');
     for (k = 0, len1 = spArr.length; k < len1; k++) {
       sItem = spArr[k];
       arr.push(new Part(PartType.none, sItem, null, null, index++));
       arr.push(new Part(PartType.space, "<space>", null, null, index++));
+    }
+  }
+  return arr;
+};
+
+
+/*
+  分割指定字符串
+ */
+
+splitStr = function(partArr, str, partType) {
+  var arr, index, j, k, len, len1, part, sItem, spArr;
+  arr = [];
+  index = 0;
+  for (j = 0, len = partArr.length; j < len; j++) {
+    part = partArr[j];
+    if (part.type !== PartType.none) {
+      arr.push(part);
+      continue;
+    }
+    spArr = part.raw.split(str);
+    for (k = 0, len1 = spArr.length; k < len1; k++) {
+      sItem = spArr[k];
+      arr.push(new Part(PartType.none, sItem, null, null, index++));
+      arr.push(new Part(partType, str, null, null, index++));
+    }
+  }
+  return arr;
+};
+
+
+/*
+    分割数字
+ */
+
+splitNum = function(partArr) {
+  var arr, index, j, k, len, len1, matchs, part, reg, s, ss, ssArr, str;
+  arr = [];
+  index = 0;
+  reg = /\d+/g;
+  for (j = 0, len = partArr.length; j < len; j++) {
+    part = partArr[j];
+    if (part.type !== PartType.none) {
+      arr.push(part);
+      continue;
+    }
+    str = part.raw;
+    matchs = str.match(reg);
+    if (matchs == null) {
+      if (matchs == null) {
+        arr.push(part);
+      }
+      continue;
+    }
+    ss = str.replace(/(\d+)/g, function(num, sub) {
+      return "0-0" + sub + "0-0";
+    });
+    ssArr = ss.split('0-0');
+    for (k = 0, len1 = ssArr.length; k < len1; k++) {
+      s = ssArr[k];
+      if (s.length === 0) {
+        continue;
+      }
+      if (reg.test(s)) {
+        arr.push(new Part(PartType.sqNum, s, null, null, index++));
+      } else {
+        arr.push(new Part(PartType.none, s, null, null, index++));
+      }
     }
   }
   return arr;
@@ -409,22 +476,10 @@ countIndex = function(partArr) {
 seqArr = [];
 
 initSeqArr = function() {
-  var index, j, k, l, last, len, len1, len2, len3, m, s, seqs, sequence;
-  seqs = '123456789';
-  last = null;
-  for (index = j = 0, len = seqs.length; j < len; index = ++j) {
-    s = seqs[index];
-    console.log("s = " + s);
-    sequence = new Sequence(PartType.sqNum, s, last, null, index);
-    seqArr.push(sequence);
-    if (last != null) {
-      last.next = sequence;
-    }
-    last = sequence;
-  }
+  var index, j, k, l, last, len, len1, len2, s, seqs, sequence;
   seqs = '一二三四五六七八九十';
   last = null;
-  for (index = k = 0, len1 = seqs.length; k < len1; index = ++k) {
+  for (index = j = 0, len = seqs.length; j < len; index = ++j) {
     s = seqs[index];
     console.log("s = " + s);
     sequence = new Sequence(PartType.sqText, s, last, null, index);
@@ -436,7 +491,7 @@ initSeqArr = function() {
   }
   seqs = 'ABCDEFGHI';
   last = null;
-  for (index = l = 0, len2 = seqs.length; l < len2; index = ++l) {
+  for (index = k = 0, len1 = seqs.length; k < len1; index = ++k) {
     s = seqs[index];
     console.log("s = " + s);
     sequence = new Sequence(PartType.sqOption, s, last, null, index);
@@ -448,7 +503,7 @@ initSeqArr = function() {
   }
   seqs = '【】';
   last = null;
-  for (index = m = 0, len3 = seqs.length; m < len3; index = ++m) {
+  for (index = l = 0, len2 = seqs.length; l < len2; index = ++l) {
     s = seqs[index];
     console.log("s = " + s);
     sequence = new Sequence(PartType.spBrackets, s, last, null, index);
@@ -460,9 +515,13 @@ initSeqArr = function() {
   }
   seqArr.push(new Sequence(PartType.qOption, "选择题", null, null, index));
   seqArr.push(new Sequence(PartType.qQuestion, "问答题", null, null, index));
+  seqArr.push(new Sequence(PartType.qQuestion, "解答题", null, null, index));
   seqArr.push(new Sequence(PartType.qAnswer, "答案", null, null, index));
+  seqArr.push(new Sequence(PartType.qAnswer, "证明", null, null, index));
   seqArr.push(new Sequence(PartType.qAnalysis, "解析", null, null, index));
+  seqArr.push(new Sequence(PartType.qAnalysis, "解", null, null, index));
   seqArr.push(new Sequence(PartType.qCommen, "点评", null, null, index));
+  seqArr.push(new Sequence(PartType.qCommen, "评论", null, null, index));
   return seqArr.push(new Sequence(PartType.qDifficulty, "难度", null, null, index));
 };
 

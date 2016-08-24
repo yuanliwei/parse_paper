@@ -25,32 +25,32 @@ class Element
 
 
 PartType = {
-  none         : 0      # 没有类型
-  wrap         : 1      # 换行符类型
-  space        : 1.1    # 空格符类型
-  text         : 2      # 普通文本类型
-  sqNum        : 3      # 数字类型的序号，题号 1. 2. 3. 4. 5. 6. ...
-  sqText       : 4      # 文字类型的序号， 大题号 一、 二、 三、 四、 ......
-  sqOption     : 5      # 选项序号， A, B, C, D, E, ...
-  spBrackets   : 5.1    # 括号 【， 】
+  none         : '1000'    # 没有类型
+  wrap         : '1010'    # 换行符类型
+  space        : '1011'    # 空格符类型
+  text         : '1020'    # 普通文本类型
+  sqNum        : '1030'    # 数字类型的序号，题号 1. 2. 3. 4. 5. 6. ...
+  sqText       : '1040'    # 文字类型的序号， 大题号 一、 二、 三、 四、 ......
+  sqOption     : '1050'    # 选项序号， A, B, C, D, E, ...
+  spBrackets   : '1051'    # 括号 【， 】
 
-  qOption      : 6      # 单选题
-  qQuestion    : 7      # 问答题
-  qAnswer      : 8      # 答案
-  qAnalysis    : 9      # 解析
-  qCommen      : 10     # 点评
-  qDifficulty  : 11     # 难度
+  qOption      : '1060'      # 单选题
+  qQuestion    : '1070'      # 问答题
+  qAnswer      : '1080'      # 答案
+  qAnalysis    : '1090'      # 解析
+  qCommen      : '1100'     # 点评
+  qDifficulty  : '1110'     # 难度
 }
 
 EleType = {
-  none            : 0 # 没有类型
-  qNo             : 1 # 题号
-  qText           : 2 # 题干
-  qOption         : 3 # 选项
-  qAnswer         : 4 # 答案
-  qAnalysis       : 5 # 解析
-  qCommen         : 6 # 点评
-  qDifficulty     : 7 # 难度
+  none            : '1000'  # 没有类型
+  qNo             : '1010'  # 题号
+  qText           : '1020'  # 题干
+  qOption         : '1030'  # 选项
+  qAnswer         : '1040'  # 答案
+  qAnalysis       : '1050'  # 解析
+  qCommen         : '1060'  # 点评
+  qDifficulty     : '1070'  # 难度
 }
 
 exports.run = (paperText) ->
@@ -67,6 +67,8 @@ exports.run = (paperText) ->
 # 分割空格符
   partArr = splitSpace partArr
 # 分割题号
+  partArr = splitNum partArr
+# 分割序号
   partArr = splitSeq partArr
 # 分割选项
   # partArr = splitOption partArr
@@ -109,30 +111,42 @@ mergePart = (partArr) ->
 mergeSeq = (partArr) ->
 
   # 图片rId237
-  partArr = mergeSeqBySymbol(partArr, '2,5,2,3,3,3,', PartType.text)
-  # 图片rId1
-  partArr = mergeSeqBySymbol(partArr, '2,5,2,3,2,', PartType.text)
-  # 图片rId11
-  partArr = mergeSeqBySymbol(partArr, '2,5,2,3,3,', PartType.text)
+  partArr = mergeSeqBySymbol(partArr, '1020,1050,1020,1030,1030,1030', PartType.text)
+  partArr = mergeSeqBySymbol(partArr, '1020,1050,1020,1030,1020,1030', PartType.text)
+  partArr = mergeSeqBySymbol(partArr, '1020,1050,1020,1030,1030,1020', PartType.text)
+  partArr = mergeSeqBySymbol(partArr, '1020,1050,1020,1030,1030', PartType.text)
+  partArr = mergeSeqBySymbol(partArr, '1020,1050,1020,1030', PartType.text)
   # 夹在文本中的空格
-  partArr = mergeSeqBySymbol(partArr, '2,1.1,2,', PartType.text)
-  partArr = mergeSeqBySymbol(partArr, '1.1,2,', PartType.text)
-  partArr = mergeSeqBySymbol(partArr, '2,1.1,', PartType.text)
+  partArr = mergeSeqBySymbol(partArr, '1020,1011,1020', PartType.text)
+  partArr = mergeSeqBySymbol(partArr, '1020,1011', PartType.text)
+  partArr = mergeSeqBySymbol(partArr, '1011,1020', PartType.text)
+  # 连续的文本+换行
+  partArr = mergeSeqBySymbol(partArr, '1020,1010,1020,1010,1020', PartType.text)
+  # 文本间的换行
+  partArr = mergeSeqBySymbol(partArr, '1020,1010,1020', PartType.text)
+  partArr = mergeSeqBySymbol(partArr, '1020,1060,1020', PartType.text)
+  partArr = mergeSeqBySymbol(partArr, '1020,1080,1020', PartType.text)
   # 【答案】
-  partArr = mergeSeqBySymbol(partArr, '5.1,8,5.1,', PartType.qAnswer)
+  partArr = mergeSeqBySymbol(partArr, '1051,1080,1051', PartType.qAnswer)
   # 【解析】
-  partArr = mergeSeqBySymbol(partArr, '5.1,9,5.1,', PartType.qAnalysis)
-  partArr = mergeSeqBySymbolRegex(partArr, '5.1,(1.1,)*9,(1.1,)*5.1,', PartType.qAnalysis)
+  partArr = mergeSeqBySymbol(partArr, '1051,1090,1051', PartType.qAnalysis)
+  partArr = mergeSeqBySymbol(partArr, '1020,1090,1020', PartType.text)
+  # # 夹有空格的解析
+  # partArr = mergeSeqBySymbol(partArr, '5.1,9,5.1', PartType.qAnalysis)
+  # partArr = mergeSeqBySymbol(partArr, '5.1,9,5.1', PartType.qAnalysis)
+  # # partArr = mergeSeqBySymbolRegex(partArr, '5.1,(1.1,)*9,(1.1,)*5.1,', PartType.qAnalysis)
   # 【点评】
-  partArr = mergeSeqBySymbol(partArr, '5.1,10,5.1,', PartType.qCommen)
+  partArr = mergeSeqBySymbol(partArr, '1051,1100,1051', PartType.qCommen)
   # 【难度】
-  partArr = mergeSeqBySymbol(partArr, '5.1,11,5.1,', PartType.qDifficulty)
-  # 合并纯文本
-  partArr = mergeSeqBySymbol(partArr, '2,2,', PartType.text)
-  # 合并夹在文本中间的数字  "将","1","0个人分"
-  partArr = mergeSeqBySymbol(partArr, '2,3,2,', PartType.text)
-  # 合并夹在文本之间的中文数字 "招生强手营第","一","阶段的讲义中，
-  partArr = mergeSeqBySymbol(partArr, '2,4,2,', PartType.text)
+  partArr = mergeSeqBySymbol(partArr, '1051,1110,1051', PartType.qDifficulty)
+  # # 合并纯文本
+  # partArr = mergeSeqBySymbol(partArr, '2,2', PartType.text)
+  # 夹在文本中的题号，是文本？
+  partArr = mergeSeqBySymbol(partArr, '1020,1040,1020', PartType.text)
+  # 夹在文本中的序号，是文本？
+  partArr = mergeSeqBySymbol(partArr, '1020,1030,1020', PartType.text)
+
+
 
   partArr
 
@@ -142,28 +156,24 @@ mergeSeq = (partArr) ->
 ###
 mergeSeqBySymbol = (partArr, symbol, partType) ->
   # symbol = '25233' # 图片rId11
+  typeLength = PartType.none.length
   typeArr = []
-  indexMap = {}
-  index = 0
   for part in partArr
     typeArr.push part.type
-    indexMap[index] = part.index
-    index += part.type.toString().length
-  typeStr = typeArr.join(',')
+  typeStr = typeArr.join('')
 
   # 这里改成先计算位置再合并的方式
+  sbls = symbol.split(',')
+  symbolStr = sbls.join('')
+
+  # 查找字符串位置
+  lastPos = 0
   posArr = []
-  loopIndex = 0
-  temTypeArr = []
-  symbolLength = symbol.split(',').length - 1
-  throw new Error("symbol : #{symbol} 格式错误，应以“,”结尾！") if !symbol.endsWith(',')
-  console.log "symbol length : #{symbolLength}"
-  for part, i in partArr
-    temTypeArr.push "#{part.type},"
-    temTypeArr.shift() if temTypeArr.length > symbolLength
-    if temTypeArr.join('') == symbol
-      # start <= pos < end
-      posArr.push {start : i - symbolLength + 1, end : i + 1 }
+  while(true)
+    index = typeStr.indexOf(symbolStr, lastPos)
+    break if index == -1
+    lastPos = index + 1
+    posArr.push {start : index / typeLength, end : index / typeLength + sbls.length }
 
   # 检查posArr是否有重叠
   endPos = 0
@@ -184,8 +194,10 @@ mergeSeqBySymbol = (partArr, symbol, partType) ->
     firstPart = partArr[pos.start]
     for i in [pos.start...pos.end]
       part = partArr[i]
+      raw = part.raw
+      raw = ' ' if part.type == PartType.space
       part.type = PartType.none
-      combineStr.push part.raw
+      combineStr.push raw
     firstPart.raw = combineStr.join('')
     firstPart.type = partType
 
@@ -208,31 +220,30 @@ mergeSeqBySymbol = (partArr, symbol, partType) ->
 ###
 mergeSeqBySymbolRegex = (partArr, symbol, partType) ->
   # symbol = '25233' # 图片rId11
+  s = "000000"
+  sl = s.length
   typeArr = []
-  indexMap = {}
-  index = 0
   for part in partArr
-    typeArr.push part.type
-    indexMap[index] = part.index
-    index += part.type.toString().length
-  typeStr = typeArr.join(',')
+    typeLength = part.type.toString().length
+    typeArr.push(s.substring(0, sl - typeLength) + part.type)
+  typeStr = typeArr.join('')
 
   # 这里改成先计算位置再合并的方式
+  sbls = symbol.split(',')
+  sblArr = []
+  for sbl in sbls
+    sblLength = sbl.length
+    sblArr.push(s.substring(0, sl - sblLength) + sbl)
+  symbolStr = sblArr.join('')
+
+  # 查找字符串位置
+  lastPos = 0
   posArr = []
-  loopIndex = 0
-  temTypeArr = []
-  symbolLength = symbol.split(',').length - 1
-  throw new Error("symbol : #{symbol} 格式错误，应以“,”结尾！") if !symbol.endsWith(',')
-  console.log "symbol length : #{symbolLength}"
-  regex = new RegExp(symbol)
-  for part, i in partArr
-    temTypeArr.push "#{part.type},"
-    temTypeArr.shift() if temTypeArr.length > symbolLength
-    # throw new Error("ooooooooooooooooooooooooo")
-    # if temTypeArr.join('') == symbol
-    if regex.test(temTypeArr.join(''))
-      # start <= pos < end
-      posArr.push {start : i - symbolLength + 1, end : i + 1 }
+  while(true)
+    index = typeStr.indexOf(symbolStr, lastPos)
+    break if index == -1
+    lastPos = index + 1
+    posArr.push {start : index / sl, end : index / sl + sbls.length }
 
   # 检查posArr是否有重叠
   endPos = 0
@@ -289,10 +300,53 @@ splitSpace = (partArr) ->
     if part.type != PartType.none
       arr.push part
       continue
-    spArr = part.raw.replace(/\r\n/g,'\n').split(' ')
+    spArr = part.raw.split(' ')
     for sItem in spArr
       arr.push new Part(PartType.none, sItem, null, null, index++ )
       arr.push new Part(PartType.space, "<space>", null, null, index++ )
+  arr
+
+###
+  分割指定字符串
+###
+splitStr = (partArr, str, partType) ->
+  arr = []
+  index = 0
+  for part in partArr
+    if part.type != PartType.none
+      arr.push part
+      continue
+    spArr = part.raw.split(str)
+    for sItem in spArr
+      arr.push new Part(PartType.none, sItem, null, null, index++ )
+      arr.push new Part(partType, str, null, null, index++ )
+  arr
+###
+    分割数字
+###
+splitNum = (partArr) ->
+  arr = []
+  index = 0
+  reg = /\d+/g
+  for part in partArr
+    if part.type != PartType.none
+      arr.push part
+      continue
+    str = part.raw
+    matchs = str.match reg
+    if !matchs?
+      arr.push part if!matchs?
+      continue
+    ss = str.replace /(\d+)/g, (num, sub) ->
+      return "0-0#{sub}0-0"
+    ssArr = ss.split('0-0')
+    for s in ssArr
+      continue if s.length == 0
+      if reg.test(s)
+        arr.push new Part(PartType.sqNum, s, null, null, index++ )
+      else
+        arr.push new Part(PartType.none, s, null, null, index++ )
+  # throw new Error('stop here!')
   arr
 
 ###
@@ -327,14 +381,14 @@ countIndex = (partArr) ->
 seqArr = []
 # 初始化序号
 initSeqArr = ->
-  seqs = '123456789'
-  last = null
-  for s, index in seqs
-    console.log "s = #{s}"
-    sequence = new Sequence(PartType.sqNum, s, last, null, index)
-    seqArr.push sequence
-    last.next = sequence if last?
-    last = sequence
+  # seqs = '123456789'
+  # last = null
+  # for s, index in seqs
+  #   console.log "s = #{s}"
+  #   sequence = new Sequence(PartType.sqNum, s, last, null, index)
+  #   seqArr.push sequence
+  #   last.next = sequence if last?
+  #   last = sequence
   seqs = '一二三四五六七八九十'
   last = null
   for s, index in seqs
@@ -362,9 +416,13 @@ initSeqArr = ->
 
   seqArr.push new Sequence(PartType.qOption, "选择题", null, null, index)
   seqArr.push new Sequence(PartType.qQuestion, "问答题", null, null, index)
+  seqArr.push new Sequence(PartType.qQuestion, "解答题", null, null, index)
   seqArr.push new Sequence(PartType.qAnswer, "答案", null, null, index)
+  seqArr.push new Sequence(PartType.qAnswer, "证明", null, null, index)
   seqArr.push new Sequence(PartType.qAnalysis, "解析", null, null, index)
+  seqArr.push new Sequence(PartType.qAnalysis, "解", null, null, index)
   seqArr.push new Sequence(PartType.qCommen, "点评", null, null, index)
+  seqArr.push new Sequence(PartType.qCommen, "评论", null, null, index)
   seqArr.push new Sequence(PartType.qDifficulty, "难度", null, null, index)
 
 
