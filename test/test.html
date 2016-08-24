@@ -3,7 +3,27 @@
   <head>
     <meta charset="utf-8">
     <title>测试工具</title>
-
+<style media="screen">
+  table tr:hover{
+    background-color: #EEE;
+  }
+  .select{
+    background-color: #EFEFEF;
+  }
+  .stats{
+    width: 30%;
+    min-height: 200px;
+    /* height: 200px; */
+    font-weight: bolder;
+    background: rgba(95, 96, 128, 0.3);
+    color: #210dd1;
+    position: fixed;
+    right: 0px;
+    padding: 10px;
+    top: 0px;
+  }
+</style>
+<script src="./jquery-2.1.3.min.js" charset="utf-8"></script>
   </head>
   <body onload="start()">
     <textarea name="name" id="input" rows="8" cols="40"></textarea>
@@ -26,9 +46,25 @@
       【难度】 中等
 
     </pre>
+    <table id="part_table" border="1" cellpadding="0" cellspacing="0" bordercolor="#aaa" style="border-collapse:collapse;">
+      <th>
+        <td>
+          thd
+        </td>
+      </th>
+      <tr>
+        <td>
+          td
+        </td>
+      </tr>
+    </table>
+    <div id="stats" class="stats">
+
+    </div>
   </body>
 
   <script src="./fs.js" charset="utf-8"></script>
+  <script src="./tohtml.js" charset="utf-8"></script>
   <script src="./split.js" charset="utf-8"></script>
   <script src="./parseMain.js" charset="utf-8"></script>
 

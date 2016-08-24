@@ -1,6 +1,8 @@
-var Part, PartType, Sequence, countIndex, fs, initSeqArr, mergePart, mergeSeq, mergeSeqBySymbol, print, seqArr, splitSeq, splitWrap;
+var EleType, Element, Part, PartType, Sequence, countIndex, fs, initSeqArr, mergePart, mergeSeq, mergeSeqBySymbol, mergeSeqBySymbolIgnoreSpace, print, seqArr, splitSeq, splitWrap, tohtml;
 
 fs = require('fs');
+
+tohtml = require('./tohtml');
 
 Part = (function() {
   function Part(type, raw, last1, next, index1) {
@@ -47,6 +49,22 @@ Sequence = (function() {
 
 })();
 
+Element = (function() {
+  function Element(type, parts, last1, next, index1) {
+    this.type = type;
+    this.parts = parts;
+    this.last = last1;
+    this.next = next;
+    this.index = index1;
+    if (this.parts == null) {
+      this.parts = [];
+    }
+  }
+
+  return Element;
+
+})();
+
 PartType = {
   none: 0,
   wrap: 1,
@@ -63,8 +81,19 @@ PartType = {
   qDifficulty: 11
 };
 
+EleType = {
+  none: 0,
+  qNo: 1,
+  qText: 2,
+  qOption: 3,
+  qAnswer: 4,
+  qAnalysis: 5,
+  qCommen: 6,
+  qDifficulty: 7
+};
+
 exports.run = function(paperText) {
-  var partArr, rootPart;
+  var eleArr, partArr, rootPart;
   console.log('run into run function');
   print();
   partArr = [];
@@ -75,6 +104,9 @@ exports.run = function(paperText) {
   partArr = countIndex(partArr);
   partArr = mergePart(partArr);
   console.table(partArr);
+  tohtml.displayPartArr(partArr);
+  eleArr = [];
+  console.table(eleArr);
 };
 
 print = function() {
@@ -100,6 +132,7 @@ mergePart = function(partArr) {
  */
 
 mergeSeq = function(partArr) {
+  partArr = mergeSeqBySymbol(partArr, '2,5,2,3,3,3,', PartType.text);
   partArr = mergeSeqBySymbol(partArr, '2,5,2,3,2,', PartType.text);
   partArr = mergeSeqBySymbol(partArr, '2,5,2,3,3,', PartType.text);
   partArr = mergeSeqBySymbol(partArr, '5.1,8,5.1,', PartType.qAnswer);
@@ -118,6 +151,80 @@ mergeSeq = function(partArr) {
  */
 
 mergeSeqBySymbol = function(partArr, symbol, partType) {
+  var arr, combineStr, endPos, firstPart, i, index, indexMap, j, k, l, lastPos, len, len1, len2, len3, len4, loopIndex, m, n, o, part, pos, posArr, ref, ref1, symbolLength, temPosArr, temTypeArr, typeArr, typeStr;
+  typeArr = [];
+  indexMap = {};
+  index = 0;
+  for (j = 0, len = partArr.length; j < len; j++) {
+    part = partArr[j];
+    typeArr.push(part.type);
+    indexMap[index] = part.index;
+    index += part.type.toString().length;
+  }
+  typeStr = typeArr.join(',');
+  posArr = [];
+  loopIndex = 0;
+  temTypeArr = [];
+  symbolLength = symbol.split(',').length - 1;
+  if (!symbol.endsWith(',')) {
+    throw new Error("symbol : " + symbol + " 格式错误，应以“,”结尾！");
+  }
+  console.log("symbol length : " + symbolLength);
+  for (i = k = 0, len1 = partArr.length; k < len1; i = ++k) {
+    part = partArr[i];
+    temTypeArr.push(part.type + ",");
+    if (temTypeArr.length > symbolLength) {
+      temTypeArr.shift();
+    }
+    if (temTypeArr.join('') === symbol) {
+      posArr.push({
+        start: i - symbolLength + 1,
+        end: i + 1
+      });
+    }
+  }
+  endPos = 0;
+  temPosArr = [];
+  for (i = l = 0, len2 = posArr.length; l < len2; i = ++l) {
+    pos = posArr[i];
+    if (pos.start < endPos) {
+      lastPos = temPosArr.pop();
+      lastPos.end = endPos = pos.end;
+      temPosArr.push(lastPos);
+    } else {
+      endPos = pos.end;
+      temPosArr.push(pos);
+    }
+  }
+  posArr = temPosArr;
+  for (m = 0, len3 = posArr.length; m < len3; m++) {
+    pos = posArr[m];
+    combineStr = [];
+    firstPart = partArr[pos.start];
+    for (i = n = ref = pos.start, ref1 = pos.end; ref <= ref1 ? n < ref1 : n > ref1; i = ref <= ref1 ? ++n : --n) {
+      part = partArr[i];
+      part.type = PartType.none;
+      combineStr.push(part.raw);
+    }
+    firstPart.raw = combineStr.join('');
+    firstPart.type = partType;
+  }
+  arr = [];
+  for (o = 0, len4 = partArr.length; o < len4; o++) {
+    part = partArr[o];
+    if (part.type !== PartType.none) {
+      arr.push(part);
+    }
+  }
+  return arr = countIndex(arr);
+};
+
+
+/*
+    根据符号模型和partType合并多余序号 忽略空白字符
+ */
+
+mergeSeqBySymbolIgnoreSpace = function(partArr, symbol, partType) {
   var arr, combineStr, endPos, firstPart, i, index, indexMap, j, k, l, lastPos, len, len1, len2, len3, len4, loopIndex, m, n, o, part, pos, posArr, ref, ref1, symbolLength, temPosArr, temTypeArr, typeArr, typeStr;
   typeArr = [];
   indexMap = {};

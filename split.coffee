@@ -1,4 +1,5 @@
 fs = require 'fs'
+tohtml = require './tohtml'
 
 class Part
   constructor: (@type, @raw, @last, @next, @index) ->
@@ -17,7 +18,10 @@ class Sequence
       arr.push new Part(@type, @raw, null, null, 0) if i != strs.length - 1
     arr
 
-
+# 试卷元素 （题号，题目，选项，答案，解析，点评，难度）
+class Element
+  constructor: (@type, @parts, @last, @next, @index) ->
+    @parts = [] if ! @parts?
 
 
 PartType = {
@@ -35,6 +39,17 @@ PartType = {
   qAnalysis    : 9      # 解析
   qCommen      : 10     # 点评
   qDifficulty  : 11     # 难度
+}
+
+EleType = {
+  none            : 0 # 没有类型
+  qNo             : 1 # 题号
+  qText           : 2 # 题干
+  qOption         : 3 # 选项
+  qAnswer         : 4 # 答案
+  qAnalysis       : 5 # 解析
+  qCommen         : 6 # 点评
+  qDifficulty     : 7 # 难度
 }
 
 exports.run = (paperText) ->
@@ -56,8 +71,14 @@ exports.run = (paperText) ->
   partArr = countIndex partArr
 # 合并多余的Part
   partArr = mergePart partArr
-  # console.dir partArr
   console.table partArr
+  tohtml.displayPartArr partArr
+# 试卷的基本元素
+  eleArr = []
+# 查找试卷的基本元素
+  # eleArr = parsePartArr partArr
+  # console.dir partArr
+  console.table eleArr
 
   # fs.writeFileSync('splitResult.txt', '\n')
 
@@ -83,6 +104,9 @@ mergePart = (partArr) ->
     合并序号
 ###
 mergeSeq = (partArr) ->
+
+  # 图片rId237
+  partArr = mergeSeqBySymbol(partArr, '2,5,2,3,3,3,', PartType.text)
   # 图片rId1
   partArr = mergeSeqBySymbol(partArr, '2,5,2,3,2,', PartType.text)
   # 图片rId11
@@ -91,6 +115,7 @@ mergeSeq = (partArr) ->
   partArr = mergeSeqBySymbol(partArr, '5.1,8,5.1,', PartType.qAnswer)
   # 【解析】
   partArr = mergeSeqBySymbol(partArr, '5.1,9,5.1,', PartType.qAnalysis)
+  # partArr = mergeSeqBySymbolReg(partArr, '5.1,9,5.1,', PartType.qAnalysis)
   # 【点评】
   partArr = mergeSeqBySymbol(partArr, '5.1,10,5.1,', PartType.qCommen)
   # 【难度】
@@ -101,6 +126,7 @@ mergeSeq = (partArr) ->
   partArr = mergeSeqBySymbol(partArr, '2,3,2,', PartType.text)
   # 合并夹在文本之间的中文数字 "招生强手营第","一","阶段的讲义中，
   partArr = mergeSeqBySymbol(partArr, '2,4,2,', PartType.text)
+
   partArr
 
 
@@ -118,7 +144,64 @@ mergeSeqBySymbol = (partArr, symbol, partType) ->
     index += part.type.toString().length
   typeStr = typeArr.join(',')
 
-# 这里改成先计算位置再合并的方式
+  # 这里改成先计算位置再合并的方式
+  posArr = []
+  loopIndex = 0
+  temTypeArr = []
+  symbolLength = symbol.split(',').length - 1
+  throw new Error("symbol : #{symbol} 格式错误，应以“,”结尾！") if !symbol.endsWith(',')
+  console.log "symbol length : #{symbolLength}"
+  for part, i in partArr
+    temTypeArr.push "#{part.type},"
+    temTypeArr.shift() if temTypeArr.length > symbolLength
+    if temTypeArr.join('') == symbol
+      # start <= pos < end
+      posArr.push {start : i - symbolLength + 1, end : i + 1 }
+
+  # 检查posArr是否有重叠
+  endPos = 0
+  temPosArr = []
+  for pos, i in posArr
+    if pos.start < endPos
+      lastPos = temPosArr.pop()
+      lastPos.end = endPos = pos.end
+      temPosArr.push lastPos
+    else
+      endPos = pos.end
+      temPosArr.push pos
+  posArr = temPosArr
+
+  # 合并同一类型的Part
+  for pos in posArr
+    combineStr = []
+    firstPart = partArr[pos.start]
+    for i in [pos.start...pos.end]
+      part = partArr[i]
+      part.type = PartType.none
+      combineStr.push part.raw
+    firstPart.raw = combineStr.join('')
+    firstPart.type = partType
+
+  arr = []
+  for part in partArr
+    arr.push(part) if part.type != PartType.none
+  arr = countIndex(arr)
+
+###
+    根据符号模型和partType合并多余序号 忽略空白字符
+###
+mergeSeqBySymbolIgnoreSpace = (partArr, symbol, partType) ->
+  # symbol = '25233' # 图片rId11
+  typeArr = []
+  indexMap = {}
+  index = 0
+  for part in partArr
+    typeArr.push part.type
+    indexMap[index] = part.index
+    index += part.type.toString().length
+  typeStr = typeArr.join(',')
+
+  # 这里改成先计算位置再合并的方式
   posArr = []
   loopIndex = 0
   temTypeArr = []
