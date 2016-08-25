@@ -117,9 +117,6 @@ mergePart = function(partArr) {
 
 mergeSeq = function(partArr) {
   partArr = mergeSeqBySymbol(partArr, '1020,1050,1020,1030', PartType.text);
-  partArr = mergeSeqBySymbolRegex(partArr, '1011+;1020', PartType.text);
-  partArr = mergeSeqBySymbolRegex(partArr, '1020;1011+', PartType.text);
-  partArr = mergeSeqBySymbolRegex(partArr, '1020+', PartType.text);
   partArr = mergeSeqBySymbol(partArr, '1020,1010,1020,1010,1020', PartType.text);
   partArr = mergeSeqBySymbol(partArr, '1020,1010,1020', PartType.text);
   partArr = mergeSeqBySymbol(partArr, '1020,1060,1020', PartType.text);
@@ -129,6 +126,7 @@ mergeSeq = function(partArr) {
   partArr = mergeSeqBySymbol(partArr, '1020,1090,1020', PartType.text);
   partArr = mergeSeqBySymbolRegex(partArr, '1051;1011{0,10};1090;1011{0,10};1051', PartType.qAnalysis);
   partArr = mergeSeqBySymbol(partArr, '1051,1100,1051', PartType.qCommen);
+  partArr = mergeSeqBySymbolRegex(partArr, '1051;1011{0,10};1100;1011{0,10};1051', PartType.qCommen);
   partArr = mergeSeqBySymbol(partArr, '1051,1110,1051', PartType.qDifficulty);
   partArr = mergeSeqBySymbol(partArr, '1020,1040,1020', PartType.text);
   partArr = mergeSeqBySymbol(partArr, '1020,1030,1020', PartType.text);
@@ -233,14 +231,15 @@ mergeSeqBySymbolRegex = function(partArr, symbol, partType) {
   symbolStr = temSbls.join('');
   reg = new RegExp(symbolStr, 'g');
   matchs = typeStr.match(reg);
-  matchs === nulllkllklk;
   matchObj = {};
-  for (l = 0, len2 = matchs.length; l < len2; l++) {
-    m = matchs[l];
-    if (m.length === 4) {
-      continue;
+  if (matchs != null) {
+    for (l = 0, len2 = matchs.length; l < len2; l++) {
+      m = matchs[l];
+      if (m.length === 4) {
+        continue;
+      }
+      matchObj[m] = m;
     }
-    matchObj[m] = m;
   }
   posArr = [];
   for (m in matchObj) {

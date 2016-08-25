@@ -113,13 +113,14 @@ mergeSeq = (partArr) ->
   # 图片rId237
   partArr = mergeSeqBySymbol(partArr, '1020,1050,1020,1030', PartType.text)
   # 文本两边的空格
-  partArr = mergeSeqBySymbolRegex(partArr, '1011+;1020', PartType.text)
-  partArr = mergeSeqBySymbolRegex(partArr, '1020;1011+', PartType.text)
-  partArr = mergeSeqBySymbolRegex(partArr, '1020+', PartType.text)
+  # partArr = mergeSeqBySymbolRegex(partArr, '1011+;1020', PartType.text)
+  # partArr = mergeSeqBySymbolRegex(partArr, '1020;1011+', PartType.text)
+  # partArr = mergeSeqBySymbol(partArr, '1020,1020', PartType.text)
   # partArr = mergeSeqBySymbol(partArr, '1020,1011', PartType.text)
   # partArr = mergeSeqBySymbol(partArr, '1011,1020', PartType.text)
   # 连续的文本+换行
   partArr = mergeSeqBySymbol(partArr, '1020,1010,1020,1010,1020', PartType.text)
+  # return partArr
   # 文本间的换行
   partArr = mergeSeqBySymbol(partArr, '1020,1010,1020', PartType.text)
   partArr = mergeSeqBySymbol(partArr, '1020,1060,1020', PartType.text)
@@ -129,10 +130,11 @@ mergeSeq = (partArr) ->
   # 【解析】
   partArr = mergeSeqBySymbol(partArr, '1051,1090,1051', PartType.qAnalysis)
   partArr = mergeSeqBySymbol(partArr, '1020,1090,1020', PartType.text)
-  # # 夹有空格的解析
+  # 解析 夹有空格
   partArr = mergeSeqBySymbolRegex(partArr, '1051;1011{0,10};1090;1011{0,10};1051', PartType.qAnalysis)
-  # 【点评】
+  # 【点评】 夹有空格
   partArr = mergeSeqBySymbol(partArr, '1051,1100,1051', PartType.qCommen)
+  partArr = mergeSeqBySymbolRegex(partArr, '1051;1011{0,10};1100;1011{0,10};1051', PartType.qCommen)
   # 【难度】
   partArr = mergeSeqBySymbol(partArr, '1051,1110,1051', PartType.qDifficulty)
   # # 合并纯文本
@@ -230,11 +232,12 @@ mergeSeqBySymbolRegex = (partArr, symbol, partType) ->
 
   reg = new RegExp(symbolStr, 'g') # /1051(1011){0,10}1090(1011){0,10}1051/g
   matchs = typeStr.match(reg)      # ["1051109010111051", "1051109010111051", "1051109010111051"]
-  matchs == nulllkllklk
+
   matchObj = {}                    # 合并重复项
-  for m in matchs
-    continue if m.length == 4      # 对于单独一个PartType不做替换
-    matchObj[m] = m
+  if matchs?                       # 判断null
+    for m in matchs
+      continue if m.length == 4      # 对于单独一个PartType不做替换
+      matchObj[m] = m
 
   # 查找匹配项的位置
   posArr = []
@@ -246,7 +249,7 @@ mergeSeqBySymbolRegex = (partArr, symbol, partType) ->
       index = typeStr.indexOf(m, lastPos)
       break if index == -1
       lastPos = index + 1
-      posArr.push {start : index / typeLength, end : index / typeLength + sbls.length }
+      posArr.push { start : index / typeLength, end : index / typeLength + sbls.length }
 
   # 检查posArr是否有重叠
   endPos = 0
