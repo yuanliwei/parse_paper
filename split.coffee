@@ -6,17 +6,17 @@ class Part
 
 class Sequence
   constructor: (@type, @raw, @last, @next, @index) ->
-
-  split: (part, arr) ->
-    if part.raw.indexOf(@raw) < 0
-      arr.push part
-      return
-
-    strs = part.raw.split(@raw)
-    for item, i in strs
-      arr.push new Part(PartType.none, item, null, null, 0) if item.length > 0
-      arr.push new Part(@type, @raw, null, null, 0) if i != strs.length - 1
-    arr
+  #
+  # split: (part, arr) ->
+  #   if part.raw.indexOf(@raw) < 0
+  #     arr.push part
+  #     return
+  #
+  #   strs = part.raw.split(@raw)
+  #   for item, i in strs
+  #     arr.push new Part(PartType.none, item, null, null, 0) if item.length > 0
+  #     arr.push new Part(@type, @raw, null, null, 0) if i != strs.length - 1
+  #   arr
 
 # 试卷元素 （题号，题目，选项，答案，解析，点评，难度）
 class Element
@@ -64,12 +64,12 @@ exports.run = (paperText) ->
 
 # 分割换行符
   partArr = splitWrap partArr
-# 分割空格符
-  partArr = splitSpace partArr
 # 分割题号
   partArr = splitNum partArr
 # 分割序号
   partArr = splitSeq partArr
+  # 分割空格符
+  partArr = splitSpace partArr
 # 分割选项
   # partArr = splitOption partArr
 # 整理Part序号
@@ -134,7 +134,7 @@ mergeSeq = (partArr) ->
   # # 夹有空格的解析
   # partArr = mergeSeqBySymbol(partArr, '5.1,9,5.1', PartType.qAnalysis)
   # partArr = mergeSeqBySymbol(partArr, '5.1,9,5.1', PartType.qAnalysis)
-  # # partArr = mergeSeqBySymbolRegex(partArr, '5.1,(1.1,)*9,(1.1,)*5.1,', PartType.qAnalysis)
+  # partArr = mergeSeqBySymbolRegex(partArr, '5.1,(1.1,)*9,(1.1,)*5.1,', PartType.qAnalysis)
   # 【点评】
   partArr = mergeSeqBySymbol(partArr, '1051,1100,1051', PartType.qCommen)
   # 【难度】
@@ -280,14 +280,26 @@ mergeSeqBySymbolRegex = (partArr, symbol, partType) ->
 splitWrap = (partArr) ->
   arr = []
   index = 0
+  reg = / /g
   for part in partArr
     if part.type != PartType.none
       arr.push part
       continue
-    spArr = part.raw.replace(/\r\n/g,'\n').split('\n')
-    for sItem in spArr
-      arr.push new Part(PartType.none, sItem, null, null, index++ )
-      arr.push new Part(PartType.wrap, "<br>", null, null, index++ )
+    str = part.raw.replace(/\r\n/g,'\n')
+    matchs = str.match reg
+    if !matchs?
+      arr.push part if!matchs?
+      continue
+    ss = str.replace /( )/g, (num, sub) ->
+      return "\n-\n#{sub}\n-\n"
+    ssArr = ss.split('\n-\n')
+    for s in ssArr
+      continue if s.length == 0
+      if reg.test(s)
+        arr.push new Part(PartType.wrap, "<br>", null, null, index++ )
+      else
+        arr.push new Part(PartType.none, s, null, null, index++ )
+  # throw new Error('stop here!')
   arr
 
 ###
@@ -296,14 +308,26 @@ splitWrap = (partArr) ->
 splitSpace = (partArr) ->
   arr = []
   index = 0
+  reg = / /g
   for part in partArr
     if part.type != PartType.none
       arr.push part
       continue
-    spArr = part.raw.split(' ')
-    for sItem in spArr
-      arr.push new Part(PartType.none, sItem, null, null, index++ )
-      arr.push new Part(PartType.space, "<space>", null, null, index++ )
+    str = part.raw
+    matchs = str.match reg
+    if !matchs?
+      arr.push part if!matchs?
+      continue
+    ss = str.replace /( )/g, (num, sub) ->
+      return " - #{sub} - "
+    ssArr = ss.split(' - ')
+    for s in ssArr
+      continue if s.length == 0
+      if reg.test(s)
+        arr.push new Part(PartType.space, "<space>", null, null, index++ )
+      else
+        arr.push new Part(PartType.none, s, null, null, index++ )
+  # throw new Error('stop here!')
   arr
 
 ###
@@ -350,17 +374,62 @@ splitNum = (partArr) ->
   arr
 
 ###
-    分割序号、关键字
+    分割序号、关键字、长度大于一的关键字用正则匹配
 ###
 splitSeq = (partArr) ->
   arr = partArr
   for seq in seqArr
     temArr = []
-    for part in arr
-      if part.type != PartType.none
-        temArr.push part
-        continue
-      seq.split(part, temArr)
+    seqraw = seq.raw
+    continue if !seqraw? || seqraw.length == 0
+
+    if seqraw.length == 1
+      # 关键字只有一个字符的时候
+      for part in arr
+        if part.type != PartType.none
+          temArr.push part
+          continue
+        reg = new RegExp(seqraw, 'g')
+        matchs = part.raw.match reg
+        if !matchs?
+          temArr.push part
+          continue
+        ss = part.raw.replace new RegExp("(#{seqraw})", 'g'), (num, sub) ->
+          return "#{seqraw}-#{seqraw}#{sub}#{seqraw}-#{seqraw}"
+        ssArr = ss.split("#{seqraw}-#{seqraw}")
+        for s in ssArr
+          continue if s.length < 1
+          if reg.test(s)
+            temArr.push new Part(seq.type, s, null, null, 0 )
+          else
+            temArr.push new Part(PartType.none, s, null, null, 0 )
+        # throw new Error('stop here!')
+    else
+      # 当关键字有多个字符的时候
+      for part in arr
+        if part.type != PartType.none
+          temArr.push part
+          continue
+        seqsArr = seqraw.split('')
+
+        # 关键字之间可以有 0 - 10 个空格
+        seqRegStr = seqsArr.join(' {0,10}')
+        reg = new RegExp(seqRegStr, 'g')
+        matchs = part.raw.match reg
+        if !matchs?
+          temArr.push part
+          continue
+        ss = part.raw.replace new RegExp("(#{seqRegStr})", 'g'), (num, sub) ->
+          return "#{seqraw}-#{seqraw}#{sub}#{seqraw}-#{seqraw}"
+        ssArr = ss.split("#{seqraw}-#{seqraw}")
+        for s in ssArr
+          continue if s.length < 1
+          if reg.test(s)
+            temArr.push new Part(seq.type, s, null, null, 0 )
+          else
+            temArr.push new Part(PartType.none, s, null, null, 0 )
+        # throw new Error("stop here !")
+
     arr = temArr
   arr
 
@@ -389,6 +458,17 @@ initSeqArr = ->
   #   seqArr.push sequence
   #   last.next = sequence if last?
   #   last = sequence
+  seqArr.push new Sequence(PartType.qOption, "选择题", null, null, index)
+  seqArr.push new Sequence(PartType.qQuestion, "问答题", null, null, index)
+  seqArr.push new Sequence(PartType.qQuestion, "解答题", null, null, index)
+  seqArr.push new Sequence(PartType.qAnswer, "答案", null, null, index)
+  seqArr.push new Sequence(PartType.qAnswer, "证明", null, null, index)
+  seqArr.push new Sequence(PartType.qAnalysis, "解析", null, null, index)
+  seqArr.push new Sequence(PartType.qAnalysis, "解", null, null, index)
+  seqArr.push new Sequence(PartType.qCommen, "点评", null, null, index)
+  seqArr.push new Sequence(PartType.qCommen, "评论", null, null, index)
+  seqArr.push new Sequence(PartType.qDifficulty, "难度", null, null, index)
+
   seqs = '一二三四五六七八九十'
   last = null
   for s, index in seqs
@@ -414,16 +494,6 @@ initSeqArr = ->
     last.next = sequence if last?
     last = sequence
 
-  seqArr.push new Sequence(PartType.qOption, "选择题", null, null, index)
-  seqArr.push new Sequence(PartType.qQuestion, "问答题", null, null, index)
-  seqArr.push new Sequence(PartType.qQuestion, "解答题", null, null, index)
-  seqArr.push new Sequence(PartType.qAnswer, "答案", null, null, index)
-  seqArr.push new Sequence(PartType.qAnswer, "证明", null, null, index)
-  seqArr.push new Sequence(PartType.qAnalysis, "解析", null, null, index)
-  seqArr.push new Sequence(PartType.qAnalysis, "解", null, null, index)
-  seqArr.push new Sequence(PartType.qCommen, "点评", null, null, index)
-  seqArr.push new Sequence(PartType.qCommen, "评论", null, null, index)
-  seqArr.push new Sequence(PartType.qDifficulty, "难度", null, null, index)
 
 
 initSeqArr()

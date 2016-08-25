@@ -26,25 +26,6 @@ Sequence = (function() {
     this.index = index1;
   }
 
-  Sequence.prototype.split = function(part, arr) {
-    var i, item, j, len, strs;
-    if (part.raw.indexOf(this.raw) < 0) {
-      arr.push(part);
-      return;
-    }
-    strs = part.raw.split(this.raw);
-    for (i = j = 0, len = strs.length; j < len; i = ++j) {
-      item = strs[i];
-      if (item.length > 0) {
-        arr.push(new Part(PartType.none, item, null, null, 0));
-      }
-      if (i !== strs.length - 1) {
-        arr.push(new Part(this.type, this.raw, null, null, 0));
-      }
-    }
-    return arr;
-  };
-
   return Sequence;
 
 })();
@@ -101,9 +82,9 @@ exports.run = function(paperText) {
   rootPart = new Part(PartType.none, paperText, null, null, 0);
   partArr.push(rootPart);
   partArr = splitWrap(partArr);
-  partArr = splitSpace(partArr);
   partArr = splitNum(partArr);
   partArr = splitSeq(partArr);
+  partArr = splitSpace(partArr);
   partArr = countIndex(partArr);
   partArr = mergePart(partArr);
   console.table(partArr);
@@ -314,20 +295,38 @@ mergeSeqBySymbolRegex = function(partArr, symbol, partType) {
  */
 
 splitWrap = function(partArr) {
-  var arr, index, j, k, len, len1, part, sItem, spArr;
+  var arr, index, j, k, len, len1, matchs, part, reg, s, ss, ssArr, str;
   arr = [];
   index = 0;
+  reg = / /g;
   for (j = 0, len = partArr.length; j < len; j++) {
     part = partArr[j];
     if (part.type !== PartType.none) {
       arr.push(part);
       continue;
     }
-    spArr = part.raw.replace(/\r\n/g, '\n').split('\n');
-    for (k = 0, len1 = spArr.length; k < len1; k++) {
-      sItem = spArr[k];
-      arr.push(new Part(PartType.none, sItem, null, null, index++));
-      arr.push(new Part(PartType.wrap, "<br>", null, null, index++));
+    str = part.raw.replace(/\r\n/g, '\n');
+    matchs = str.match(reg);
+    if (matchs == null) {
+      if (matchs == null) {
+        arr.push(part);
+      }
+      continue;
+    }
+    ss = str.replace(/( )/g, function(num, sub) {
+      return "\n-\n" + sub + "\n-\n";
+    });
+    ssArr = ss.split('\n-\n');
+    for (k = 0, len1 = ssArr.length; k < len1; k++) {
+      s = ssArr[k];
+      if (s.length === 0) {
+        continue;
+      }
+      if (reg.test(s)) {
+        arr.push(new Part(PartType.wrap, "<br>", null, null, index++));
+      } else {
+        arr.push(new Part(PartType.none, s, null, null, index++));
+      }
     }
   }
   return arr;
@@ -339,20 +338,38 @@ splitWrap = function(partArr) {
  */
 
 splitSpace = function(partArr) {
-  var arr, index, j, k, len, len1, part, sItem, spArr;
+  var arr, index, j, k, len, len1, matchs, part, reg, s, ss, ssArr, str;
   arr = [];
   index = 0;
+  reg = / /g;
   for (j = 0, len = partArr.length; j < len; j++) {
     part = partArr[j];
     if (part.type !== PartType.none) {
       arr.push(part);
       continue;
     }
-    spArr = part.raw.split(' ');
-    for (k = 0, len1 = spArr.length; k < len1; k++) {
-      sItem = spArr[k];
-      arr.push(new Part(PartType.none, sItem, null, null, index++));
-      arr.push(new Part(PartType.space, "<space>", null, null, index++));
+    str = part.raw;
+    matchs = str.match(reg);
+    if (matchs == null) {
+      if (matchs == null) {
+        arr.push(part);
+      }
+      continue;
+    }
+    ss = str.replace(/( )/g, function(num, sub) {
+      return " - " + sub + " - ";
+    });
+    ssArr = ss.split(' - ');
+    for (k = 0, len1 = ssArr.length; k < len1; k++) {
+      s = ssArr[k];
+      if (s.length === 0) {
+        continue;
+      }
+      if (reg.test(s)) {
+        arr.push(new Part(PartType.space, "<space>", null, null, index++));
+      } else {
+        arr.push(new Part(PartType.none, s, null, null, index++));
+      }
     }
   }
   return arr;
@@ -428,22 +445,79 @@ splitNum = function(partArr) {
 
 
 /*
-    分割序号、关键字
+    分割序号、关键字、长度大于一的关键字用正则匹配
  */
 
 splitSeq = function(partArr) {
-  var arr, j, k, len, len1, part, seq, temArr;
+  var arr, j, k, l, len, len1, len2, len3, len4, m, matchs, n, part, reg, s, seq, seqRegStr, seqraw, seqsArr, ss, ssArr, temArr;
   arr = partArr;
   for (j = 0, len = seqArr.length; j < len; j++) {
     seq = seqArr[j];
     temArr = [];
-    for (k = 0, len1 = arr.length; k < len1; k++) {
-      part = arr[k];
-      if (part.type !== PartType.none) {
-        temArr.push(part);
-        continue;
+    seqraw = seq.raw;
+    if ((seqraw == null) || seqraw.length === 0) {
+      continue;
+    }
+    if (seqraw.length === 1) {
+      for (k = 0, len1 = arr.length; k < len1; k++) {
+        part = arr[k];
+        if (part.type !== PartType.none) {
+          temArr.push(part);
+          continue;
+        }
+        reg = new RegExp(seqraw, 'g');
+        matchs = part.raw.match(reg);
+        if (matchs == null) {
+          temArr.push(part);
+          continue;
+        }
+        ss = part.raw.replace(new RegExp("(" + seqraw + ")", 'g'), function(num, sub) {
+          return seqraw + "-" + seqraw + sub + seqraw + "-" + seqraw;
+        });
+        ssArr = ss.split(seqraw + "-" + seqraw);
+        for (l = 0, len2 = ssArr.length; l < len2; l++) {
+          s = ssArr[l];
+          if (s.length < 1) {
+            continue;
+          }
+          if (reg.test(s)) {
+            temArr.push(new Part(seq.type, s, null, null, 0));
+          } else {
+            temArr.push(new Part(PartType.none, s, null, null, 0));
+          }
+        }
       }
-      seq.split(part, temArr);
+    } else {
+      for (m = 0, len3 = arr.length; m < len3; m++) {
+        part = arr[m];
+        if (part.type !== PartType.none) {
+          temArr.push(part);
+          continue;
+        }
+        seqsArr = seqraw.split('');
+        seqRegStr = seqsArr.join(' {0,10}');
+        reg = new RegExp(seqRegStr, 'g');
+        matchs = part.raw.match(reg);
+        if (matchs == null) {
+          temArr.push(part);
+          continue;
+        }
+        ss = part.raw.replace(new RegExp("(" + seqRegStr + ")", 'g'), function(num, sub) {
+          return seqraw + "-" + seqraw + sub + seqraw + "-" + seqraw;
+        });
+        ssArr = ss.split(seqraw + "-" + seqraw);
+        for (n = 0, len4 = ssArr.length; n < len4; n++) {
+          s = ssArr[n];
+          if (s.length < 1) {
+            continue;
+          }
+          if (reg.test(s)) {
+            temArr.push(new Part(seq.type, s, null, null, 0));
+          } else {
+            temArr.push(new Part(PartType.none, s, null, null, 0));
+          }
+        }
+      }
     }
     arr = temArr;
   }
@@ -476,7 +550,17 @@ countIndex = function(partArr) {
 seqArr = [];
 
 initSeqArr = function() {
-  var index, j, k, l, last, len, len1, len2, s, seqs, sequence;
+  var index, j, k, l, last, len, len1, len2, results, s, seqs, sequence;
+  seqArr.push(new Sequence(PartType.qOption, "选择题", null, null, index));
+  seqArr.push(new Sequence(PartType.qQuestion, "问答题", null, null, index));
+  seqArr.push(new Sequence(PartType.qQuestion, "解答题", null, null, index));
+  seqArr.push(new Sequence(PartType.qAnswer, "答案", null, null, index));
+  seqArr.push(new Sequence(PartType.qAnswer, "证明", null, null, index));
+  seqArr.push(new Sequence(PartType.qAnalysis, "解析", null, null, index));
+  seqArr.push(new Sequence(PartType.qAnalysis, "解", null, null, index));
+  seqArr.push(new Sequence(PartType.qCommen, "点评", null, null, index));
+  seqArr.push(new Sequence(PartType.qCommen, "评论", null, null, index));
+  seqArr.push(new Sequence(PartType.qDifficulty, "难度", null, null, index));
   seqs = '一二三四五六七八九十';
   last = null;
   for (index = j = 0, len = seqs.length; j < len; index = ++j) {
@@ -503,6 +587,7 @@ initSeqArr = function() {
   }
   seqs = '【】';
   last = null;
+  results = [];
   for (index = l = 0, len2 = seqs.length; l < len2; index = ++l) {
     s = seqs[index];
     console.log("s = " + s);
@@ -511,18 +596,9 @@ initSeqArr = function() {
     if (last != null) {
       last.next = sequence;
     }
-    last = sequence;
+    results.push(last = sequence);
   }
-  seqArr.push(new Sequence(PartType.qOption, "选择题", null, null, index));
-  seqArr.push(new Sequence(PartType.qQuestion, "问答题", null, null, index));
-  seqArr.push(new Sequence(PartType.qQuestion, "解答题", null, null, index));
-  seqArr.push(new Sequence(PartType.qAnswer, "答案", null, null, index));
-  seqArr.push(new Sequence(PartType.qAnswer, "证明", null, null, index));
-  seqArr.push(new Sequence(PartType.qAnalysis, "解析", null, null, index));
-  seqArr.push(new Sequence(PartType.qAnalysis, "解", null, null, index));
-  seqArr.push(new Sequence(PartType.qCommen, "点评", null, null, index));
-  seqArr.push(new Sequence(PartType.qCommen, "评论", null, null, index));
-  return seqArr.push(new Sequence(PartType.qDifficulty, "难度", null, null, index));
+  return results;
 };
 
 initSeqArr();
