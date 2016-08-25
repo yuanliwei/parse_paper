@@ -4,9 +4,9 @@ exports.displayPartArr = (partArr) ->
     console.table partArr
     return
   results = []
-  results.push "<tr><th>no.</th><th>PartType</th><th>raw</th><th>index</th></tr>"
+  results.push "<tr><th>no.</th><th>PartType</th><th>PartTypeName</th><th>raw</th><th>index</th></tr>"
   for part, i in partArr
-    results.push "<tr><td>#{i}</td><td align='center'>#{part.type}</td><td><code>\"#{html_encode part.raw}\"</code></td><td>#{part.index}</td></tr>"
+    results.push "<tr><td>#{i}</td><td align='center'>#{part.type}</td><td align='center'><small>#{PartTypeName[part.type]}</small></td><td><code>\"#{html_encode part.raw}\"</code></td><td>#{part.index}</td></tr>"
   table = document.getElementById('part_table')
   table.innerHTML = results.join('')
   $('tr').each (num, tr) ->
@@ -27,6 +27,24 @@ updateStats = ->
     lastIndex = partIndex
     results.push "#{partType},"
   $('#stats').html("#{results.join('')}")
+
+PartTypeName = {
+    '1000'  :  '没有类型'
+    '1010'  :  '换行符'
+    '1011'  :  '空格'
+    '1020'  :  '普通文本'
+    '1030'  :  '小题号'
+    '1040'  :  '大题号'
+    '1050'  :  '序号'
+    '1051'  :  '括号 【， 】'
+
+    '1060'  :  '单选题 '
+    '1070'  :  '问答题'
+    '1080'  :  '答案'
+    '1090'  :  '解析'
+    '1100'  :  '点评'
+    '1110'  :  '难度'
+  }
 
 html_encode = (str) ->
   s = "";

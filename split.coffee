@@ -6,17 +6,6 @@ class Part
 
 class Sequence
   constructor: (@type, @raw, @last, @next, @index) ->
-  #
-  # split: (part, arr) ->
-  #   if part.raw.indexOf(@raw) < 0
-  #     arr.push part
-  #     return
-  #
-  #   strs = part.raw.split(@raw)
-  #   for item, i in strs
-  #     arr.push new Part(PartType.none, item, null, null, 0) if item.length > 0
-  #     arr.push new Part(@type, @raw, null, null, 0) if i != strs.length - 1
-  #   arr
 
 # 试卷元素 （题号，题目，选项，答案，解析，点评，难度）
 class Element
@@ -41,6 +30,7 @@ PartType = {
   qCommen      : '1100'     # 点评
   qDifficulty  : '1110'     # 难度
 }
+
 
 EleType = {
   none            : '1000'  # 没有类型
@@ -112,36 +102,46 @@ mergeSeq = (partArr) ->
 
   # 图片rId237
   partArr = mergeSeqBySymbol(partArr, '1020,1050,1020,1030', PartType.text)
-  # 文本两边的空格
-  # partArr = mergeSeqBySymbolRegex(partArr, '1011+;1020', PartType.text)
-  # partArr = mergeSeqBySymbolRegex(partArr, '1020;1011+', PartType.text)
-  # partArr = mergeSeqBySymbol(partArr, '1020,1020', PartType.text)
-  # partArr = mergeSeqBySymbol(partArr, '1020,1011', PartType.text)
-  # partArr = mergeSeqBySymbol(partArr, '1011,1020', PartType.text)
-  # 连续的文本+换行
-  partArr = mergeSeqBySymbol(partArr, '1020,1010,1020,1010,1020', PartType.text)
-  # return partArr
+
   # 文本间的换行
   partArr = mergeSeqBySymbol(partArr, '1020,1010,1020', PartType.text)
-  partArr = mergeSeqBySymbol(partArr, '1020,1060,1020', PartType.text)
-  partArr = mergeSeqBySymbol(partArr, '1020,1080,1020', PartType.text)
+
+  # 合并关键字
   # 【答案】
   partArr = mergeSeqBySymbol(partArr, '1051,1080,1051', PartType.qAnswer)
   # 【解析】
-  partArr = mergeSeqBySymbol(partArr, '1051,1090,1051', PartType.qAnalysis)
-  partArr = mergeSeqBySymbol(partArr, '1020,1090,1020', PartType.text)
-  # 解析 夹有空格
   partArr = mergeSeqBySymbolRegex(partArr, '1051;1011{0,10};1090;1011{0,10};1051', PartType.qAnalysis)
-  # 【点评】 夹有空格
-  partArr = mergeSeqBySymbol(partArr, '1051,1100,1051', PartType.qCommen)
+  # 【点评】
   partArr = mergeSeqBySymbolRegex(partArr, '1051;1011{0,10};1100;1011{0,10};1051', PartType.qCommen)
+  # return partArr
   # 【难度】
   partArr = mergeSeqBySymbol(partArr, '1051,1110,1051', PartType.qDifficulty)
-  # # 合并纯文本
+
+
+  # 连续的文本+换行
+  partArr = mergeSeqBySymbol(partArr, '1020,1010,1020,1010,1020', PartType.text)
+  # 合并空格
+  partArr = mergeSeqBySymbolRegex(partArr, '1011;1011+', PartType.space)
+  partArr = mergeSeqBySymbolRegex(partArr, '1011;1020', PartType.text)
+  partArr = mergeSeqBySymbolRegex(partArr, '1020;1011', PartType.text)
+  # 合并纯文本
+  partArr = mergeSeqBySymbol(partArr, '1020,1020', PartType.text)
   # partArr = mergeSeqBySymbol(partArr, '2,2', PartType.text)
+
   # 夹在文本中的题号，是文本？
   partArr = mergeSeqBySymbol(partArr, '1020,1040,1020', PartType.text)
   # 夹在文本中的序号，是文本？
+  partArr = mergeSeqBySymbol(partArr, '1020,1030,1020', PartType.text)
+  # 夹在文本中的关键字，是文本？
+  partArr = mergeSeqBySymbol(partArr, '1020,1040,1020', PartType.text)
+  partArr = mergeSeqBySymbol(partArr, '1020,1060,1020', PartType.text)
+  partArr = mergeSeqBySymbol(partArr, '1020,1080,1020', PartType.text)
+  partArr = mergeSeqBySymbol(partArr, '1020,1090,1020', PartType.text)
+
+  # 下面的需要根据上文判断
+  partArr = mergeSeqBySymbol(partArr, '1011,1040,1020', PartType.text)
+  partArr = mergeSeqBySymbol(partArr, '1011,1050,1020', PartType.text)
+  partArr = mergeSeqBySymbol(partArr, '1020,1030,1011', PartType.text)
   partArr = mergeSeqBySymbol(partArr, '1020,1030,1020', PartType.text)
 
 
@@ -236,7 +236,7 @@ mergeSeqBySymbolRegex = (partArr, symbol, partType) ->
   matchObj = {}                    # 合并重复项
   if matchs?                       # 判断null
     for m in matchs
-      continue if m.length == 4      # 对于单独一个PartType不做替换
+      continue if m.length == typeLength      # 对于单独一个PartType不做替换
       matchObj[m] = m
 
   # 查找匹配项的位置
@@ -249,7 +249,11 @@ mergeSeqBySymbolRegex = (partArr, symbol, partType) ->
       index = typeStr.indexOf(m, lastPos)
       break if index == -1
       lastPos = index + 1
-      posArr.push { start : index / typeLength, end : index / typeLength + sbls.length }
+      posArr.push { start : index / typeLength, end : index / typeLength + m.length / typeLength }
+
+  # 排序
+  posArr.sort (l, h) ->
+    l.start - h.start
 
   # 检查posArr是否有重叠
   endPos = 0
@@ -268,6 +272,10 @@ mergeSeqBySymbolRegex = (partArr, symbol, partType) ->
   for pos in posArr
     combineStr = []
     firstPart = partArr[pos.start]
+    s1 = []
+    for i in [pos.start...pos.end]
+      s1.push partArr[i].type
+    console.log s1.join(' ')
     for i in [pos.start...pos.end]
       part = partArr[i]
       raw = part.raw
@@ -304,6 +312,7 @@ splitWrap = (partArr) ->
     ssArr = ss.split('\n-\n')
     for s in ssArr
       continue if s.length == 0
+      reg.lastIndex = 0
       if reg.test(s)
         arr.push new Part(PartType.wrap, "<br>", null, null, index++ )
       else
@@ -332,6 +341,7 @@ splitSpace = (partArr) ->
     ssArr = ss.split(' - ')
     for s in ssArr
       continue if s.length == 0
+      reg.lastIndex = 0
       if reg.test(s)
         arr.push new Part(PartType.space, "<space>", null, null, index++ )
       else
@@ -375,6 +385,7 @@ splitNum = (partArr) ->
     ssArr = ss.split('0-0')
     for s in ssArr
       continue if s.length == 0
+      reg.lastIndex = 0
       if reg.test(s)
         arr.push new Part(PartType.sqNum, s, null, null, index++ )
       else
@@ -408,6 +419,7 @@ splitSeq = (partArr) ->
         ssArr = ss.split("#{seqraw}-#{seqraw}")
         for s in ssArr
           continue if s.length < 1
+          reg.lastIndex = 0
           if reg.test(s)
             temArr.push new Part(seq.type, s, null, null, 0 )
           else
@@ -421,7 +433,7 @@ splitSeq = (partArr) ->
           continue
         seqsArr = seqraw.split('')
 
-        # 关键字之间可以有 0 - 10 个空格
+        # 关键字之间可以有 0 - 10 个空格 关键字之间的空格会被去掉
         seqRegStr = seqsArr.join(' {0,10}')
         reg = new RegExp(seqRegStr, 'g')
         matchs = part.raw.match reg
@@ -433,6 +445,7 @@ splitSeq = (partArr) ->
         ssArr = ss.split("#{seqraw}-#{seqraw}")
         for s in ssArr
           continue if s.length < 1
+          reg.lastIndex = 0
           if reg.test(s)
             temArr.push new Part(seq.type, s, null, null, 0 )
           else

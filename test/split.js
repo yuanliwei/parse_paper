@@ -117,18 +117,25 @@ mergePart = function(partArr) {
 
 mergeSeq = function(partArr) {
   partArr = mergeSeqBySymbol(partArr, '1020,1050,1020,1030', PartType.text);
-  partArr = mergeSeqBySymbol(partArr, '1020,1010,1020,1010,1020', PartType.text);
   partArr = mergeSeqBySymbol(partArr, '1020,1010,1020', PartType.text);
-  partArr = mergeSeqBySymbol(partArr, '1020,1060,1020', PartType.text);
-  partArr = mergeSeqBySymbol(partArr, '1020,1080,1020', PartType.text);
   partArr = mergeSeqBySymbol(partArr, '1051,1080,1051', PartType.qAnswer);
-  partArr = mergeSeqBySymbol(partArr, '1051,1090,1051', PartType.qAnalysis);
-  partArr = mergeSeqBySymbol(partArr, '1020,1090,1020', PartType.text);
   partArr = mergeSeqBySymbolRegex(partArr, '1051;1011{0,10};1090;1011{0,10};1051', PartType.qAnalysis);
-  partArr = mergeSeqBySymbol(partArr, '1051,1100,1051', PartType.qCommen);
   partArr = mergeSeqBySymbolRegex(partArr, '1051;1011{0,10};1100;1011{0,10};1051', PartType.qCommen);
   partArr = mergeSeqBySymbol(partArr, '1051,1110,1051', PartType.qDifficulty);
+  partArr = mergeSeqBySymbol(partArr, '1020,1010,1020,1010,1020', PartType.text);
+  partArr = mergeSeqBySymbolRegex(partArr, '1011;1011+', PartType.space);
+  partArr = mergeSeqBySymbolRegex(partArr, '1011;1020', PartType.text);
+  partArr = mergeSeqBySymbolRegex(partArr, '1020;1011', PartType.text);
+  partArr = mergeSeqBySymbol(partArr, '1020,1020', PartType.text);
   partArr = mergeSeqBySymbol(partArr, '1020,1040,1020', PartType.text);
+  partArr = mergeSeqBySymbol(partArr, '1020,1030,1020', PartType.text);
+  partArr = mergeSeqBySymbol(partArr, '1020,1040,1020', PartType.text);
+  partArr = mergeSeqBySymbol(partArr, '1020,1060,1020', PartType.text);
+  partArr = mergeSeqBySymbol(partArr, '1020,1080,1020', PartType.text);
+  partArr = mergeSeqBySymbol(partArr, '1020,1090,1020', PartType.text);
+  partArr = mergeSeqBySymbol(partArr, '1011,1040,1020', PartType.text);
+  partArr = mergeSeqBySymbol(partArr, '1011,1050,1020', PartType.text);
+  partArr = mergeSeqBySymbol(partArr, '1020,1030,1011', PartType.text);
   partArr = mergeSeqBySymbol(partArr, '1020,1030,1020', PartType.text);
   return partArr;
 };
@@ -139,7 +146,7 @@ mergeSeq = function(partArr) {
  */
 
 mergeSeqBySymbol = function(partArr, symbol, partType) {
-  var arr, combineStr, endPos, firstPart, i, index, j, k, l, lastPos, len, len1, len2, len3, n, o, part, pos, posArr, raw, ref, ref1, sbls, symbolStr, temPosArr, typeArr, typeLength, typeStr;
+  var arr, combineStr, endPos, firstPart, i, index, j, k, lastPos, len, len1, len2, len3, n, o, p, part, pos, posArr, raw, ref, ref1, sbls, symbolStr, temPosArr, typeArr, typeLength, typeStr;
   typeLength = PartType.none.length;
   typeArr = [];
   for (j = 0, len = partArr.length; j < len; j++) {
@@ -176,11 +183,11 @@ mergeSeqBySymbol = function(partArr, symbol, partType) {
     }
   }
   posArr = temPosArr;
-  for (l = 0, len2 = posArr.length; l < len2; l++) {
-    pos = posArr[l];
+  for (n = 0, len2 = posArr.length; n < len2; n++) {
+    pos = posArr[n];
     combineStr = [];
     firstPart = partArr[pos.start];
-    for (i = n = ref = pos.start, ref1 = pos.end; ref <= ref1 ? n < ref1 : n > ref1; i = ref <= ref1 ? ++n : --n) {
+    for (i = o = ref = pos.start, ref1 = pos.end; ref <= ref1 ? o < ref1 : o > ref1; i = ref <= ref1 ? ++o : --o) {
       part = partArr[i];
       raw = part.raw;
       if (part.type === PartType.space) {
@@ -193,8 +200,8 @@ mergeSeqBySymbol = function(partArr, symbol, partType) {
     firstPart.type = partType;
   }
   arr = [];
-  for (o = 0, len3 = partArr.length; o < len3; o++) {
-    part = partArr[o];
+  for (p = 0, len3 = partArr.length; p < len3; p++) {
+    part = partArr[p];
     if (part.type !== PartType.none) {
       arr.push(part);
     }
@@ -208,7 +215,7 @@ mergeSeqBySymbol = function(partArr, symbol, partType) {
  */
 
 mergeSeqBySymbolRegex = function(partArr, symbol, partType) {
-  var arr, combineStr, endPos, firstPart, i, index, j, k, l, lastPos, len, len1, len2, len3, len4, len5, m, matchObj, matchs, n, o, p, part, pos, posArr, q, raw, ref, ref1, reg, s1, s2, sbl, sbls, symbolStr, temPosArr, temSbls, typeArr, typeLength, typeStr;
+  var arr, combineStr, endPos, firstPart, i, index, j, k, lastPos, len, len1, len2, len3, len4, len5, m, matchObj, matchs, n, o, p, part, pos, posArr, q, r, raw, ref, ref1, ref2, ref3, reg, s1, s2, sbl, sbls, symbolStr, t, temPosArr, temSbls, typeArr, typeLength, typeStr;
   typeLength = PartType.none.length;
   typeArr = [];
   for (j = 0, len = partArr.length; j < len; j++) {
@@ -233,9 +240,9 @@ mergeSeqBySymbolRegex = function(partArr, symbol, partType) {
   matchs = typeStr.match(reg);
   matchObj = {};
   if (matchs != null) {
-    for (l = 0, len2 = matchs.length; l < len2; l++) {
-      m = matchs[l];
-      if (m.length === 4) {
+    for (n = 0, len2 = matchs.length; n < len2; n++) {
+      m = matchs[n];
+      if (m.length === typeLength) {
         continue;
       }
       matchObj[m] = m;
@@ -253,13 +260,16 @@ mergeSeqBySymbolRegex = function(partArr, symbol, partType) {
       lastPos = index + 1;
       posArr.push({
         start: index / typeLength,
-        end: index / typeLength + sbls.length
+        end: index / typeLength + m.length / typeLength
       });
     }
   }
+  posArr.sort(function(l, h) {
+    return l.start - h.start;
+  });
   endPos = 0;
   temPosArr = [];
-  for (i = n = 0, len3 = posArr.length; n < len3; i = ++n) {
+  for (i = o = 0, len3 = posArr.length; o < len3; i = ++o) {
     pos = posArr[i];
     if (pos.start < endPos) {
       lastPos = temPosArr.pop();
@@ -271,11 +281,16 @@ mergeSeqBySymbolRegex = function(partArr, symbol, partType) {
     }
   }
   posArr = temPosArr;
-  for (o = 0, len4 = posArr.length; o < len4; o++) {
-    pos = posArr[o];
+  for (p = 0, len4 = posArr.length; p < len4; p++) {
+    pos = posArr[p];
     combineStr = [];
     firstPart = partArr[pos.start];
-    for (i = p = ref = pos.start, ref1 = pos.end; ref <= ref1 ? p < ref1 : p > ref1; i = ref <= ref1 ? ++p : --p) {
+    s1 = [];
+    for (i = q = ref = pos.start, ref1 = pos.end; ref <= ref1 ? q < ref1 : q > ref1; i = ref <= ref1 ? ++q : --q) {
+      s1.push(partArr[i].type);
+    }
+    console.log(s1.join(' '));
+    for (i = r = ref2 = pos.start, ref3 = pos.end; ref2 <= ref3 ? r < ref3 : r > ref3; i = ref2 <= ref3 ? ++r : --r) {
       part = partArr[i];
       raw = part.raw;
       if (part.type === PartType.space) {
@@ -288,8 +303,8 @@ mergeSeqBySymbolRegex = function(partArr, symbol, partType) {
     firstPart.type = partType;
   }
   arr = [];
-  for (q = 0, len5 = partArr.length; q < len5; q++) {
-    part = partArr[q];
+  for (t = 0, len5 = partArr.length; t < len5; t++) {
+    part = partArr[t];
     if (part.type !== PartType.none) {
       arr.push(part);
     }
@@ -330,6 +345,7 @@ splitWrap = function(partArr) {
       if (s.length === 0) {
         continue;
       }
+      reg.lastIndex = 0;
       if (reg.test(s)) {
         arr.push(new Part(PartType.wrap, "<br>", null, null, index++));
       } else {
@@ -373,6 +389,7 @@ splitSpace = function(partArr) {
       if (s.length === 0) {
         continue;
       }
+      reg.lastIndex = 0;
       if (reg.test(s)) {
         arr.push(new Part(PartType.space, "<space>", null, null, index++));
       } else {
@@ -441,6 +458,7 @@ splitNum = function(partArr) {
       if (s.length === 0) {
         continue;
       }
+      reg.lastIndex = 0;
       if (reg.test(s)) {
         arr.push(new Part(PartType.sqNum, s, null, null, index++));
       } else {
@@ -457,7 +475,7 @@ splitNum = function(partArr) {
  */
 
 splitSeq = function(partArr) {
-  var arr, j, k, l, len, len1, len2, len3, len4, matchs, n, o, part, reg, s, seq, seqRegStr, seqraw, seqsArr, ss, ssArr, temArr;
+  var arr, j, k, len, len1, len2, len3, len4, matchs, n, o, p, part, reg, s, seq, seqRegStr, seqraw, seqsArr, ss, ssArr, temArr;
   arr = partArr;
   for (j = 0, len = seqArr.length; j < len; j++) {
     seq = seqArr[j];
@@ -483,11 +501,12 @@ splitSeq = function(partArr) {
           return seqraw + "-" + seqraw + sub + seqraw + "-" + seqraw;
         });
         ssArr = ss.split(seqraw + "-" + seqraw);
-        for (l = 0, len2 = ssArr.length; l < len2; l++) {
-          s = ssArr[l];
+        for (n = 0, len2 = ssArr.length; n < len2; n++) {
+          s = ssArr[n];
           if (s.length < 1) {
             continue;
           }
+          reg.lastIndex = 0;
           if (reg.test(s)) {
             temArr.push(new Part(seq.type, s, null, null, 0));
           } else {
@@ -496,8 +515,8 @@ splitSeq = function(partArr) {
         }
       }
     } else {
-      for (n = 0, len3 = arr.length; n < len3; n++) {
-        part = arr[n];
+      for (o = 0, len3 = arr.length; o < len3; o++) {
+        part = arr[o];
         if (part.type !== PartType.none) {
           temArr.push(part);
           continue;
@@ -514,11 +533,12 @@ splitSeq = function(partArr) {
           return seqraw + "-" + seqraw + sub + seqraw + "-" + seqraw;
         });
         ssArr = ss.split(seqraw + "-" + seqraw);
-        for (o = 0, len4 = ssArr.length; o < len4; o++) {
-          s = ssArr[o];
+        for (p = 0, len4 = ssArr.length; p < len4; p++) {
+          s = ssArr[p];
           if (s.length < 1) {
             continue;
           }
+          reg.lastIndex = 0;
           if (reg.test(s)) {
             temArr.push(new Part(seq.type, s, null, null, 0));
           } else {
@@ -558,7 +578,7 @@ countIndex = function(partArr) {
 seqArr = [];
 
 initSeqArr = function() {
-  var index, j, k, l, last, len, len1, len2, results, s, seqs, sequence;
+  var index, j, k, last, len, len1, len2, n, results, s, seqs, sequence;
   seqArr.push(new Sequence(PartType.qOption, "选择题", null, null, index));
   seqArr.push(new Sequence(PartType.qQuestion, "问答题", null, null, index));
   seqArr.push(new Sequence(PartType.qQuestion, "解答题", null, null, index));
@@ -596,7 +616,7 @@ initSeqArr = function() {
   seqs = '【】';
   last = null;
   results = [];
-  for (index = l = 0, len2 = seqs.length; l < len2; index = ++l) {
+  for (index = n = 0, len2 = seqs.length; n < len2; index = ++n) {
     s = seqs[index];
     console.log("s = " + s);
     sequence = new Sequence(PartType.spBrackets, s, last, null, index);
