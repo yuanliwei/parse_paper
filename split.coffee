@@ -112,14 +112,12 @@ mergeSeq = (partArr) ->
 
   # 图片rId237
   partArr = mergeSeqBySymbol(partArr, '1020,1050,1020,1030', PartType.text)
-  # partArr = mergeSeqBySymbol(partArr, '1020,1050,1020,1030,1020,1030', PartType.text)
-  # partArr = mergeSeqBySymbol(partArr, '1020,1050,1020,1030,1030,1020', PartType.text)
-  # partArr = mergeSeqBySymbol(partArr, '1020,1050,1020,1030,1030', PartType.text)
-  # partArr = mergeSeqBySymbol(partArr, '1020,1050,1020,1030', PartType.text)
-  # 夹在文本中的空格
-  partArr = mergeSeqBySymbol(partArr, '1020,1011,1020', PartType.text)
-  partArr = mergeSeqBySymbol(partArr, '1020,1011', PartType.text)
-  partArr = mergeSeqBySymbol(partArr, '1011,1020', PartType.text)
+  # 文本两边的空格
+  partArr = mergeSeqBySymbolRegex(partArr, '1011+;1020', PartType.text)
+  partArr = mergeSeqBySymbolRegex(partArr, '1020;1011+', PartType.text)
+  partArr = mergeSeqBySymbolRegex(partArr, '1020+', PartType.text)
+  # partArr = mergeSeqBySymbol(partArr, '1020,1011', PartType.text)
+  # partArr = mergeSeqBySymbol(partArr, '1011,1020', PartType.text)
   # 连续的文本+换行
   partArr = mergeSeqBySymbol(partArr, '1020,1010,1020,1010,1020', PartType.text)
   # 文本间的换行
@@ -132,9 +130,7 @@ mergeSeq = (partArr) ->
   partArr = mergeSeqBySymbol(partArr, '1051,1090,1051', PartType.qAnalysis)
   partArr = mergeSeqBySymbol(partArr, '1020,1090,1020', PartType.text)
   # # 夹有空格的解析
-  # partArr = mergeSeqBySymbol(partArr, '5.1,9,5.1', PartType.qAnalysis)
-  # partArr = mergeSeqBySymbol(partArr, '5.1,9,5.1', PartType.qAnalysis)
-  # partArr = mergeSeqBySymbolRegex(partArr, '5.1,(1.1,)*9,(1.1,)*5.1,', PartType.qAnalysis)
+  partArr = mergeSeqBySymbolRegex(partArr, '1051;1011{0,10};1090;1011{0,10};1051', PartType.qAnalysis)
   # 【点评】
   partArr = mergeSeqBySymbol(partArr, '1051,1100,1051', PartType.qCommen)
   # 【难度】
@@ -207,43 +203,50 @@ mergeSeqBySymbol = (partArr, symbol, partType) ->
   arr = countIndex(arr)
 
 ###
-    根据符号模型和partType合并多余序号 忽略空白字符
-    5.1,(1.1,)*9,(1.1,)*5.1,
-
-    todo 使用定长字符串
-    5.1,9,1.1,1.1,5.1,
-    5.1,1.1,1.1,9,1.1,1.1,5.1,
-    5.1,1.1,1.1,9,1.1,5.1,
-    5.1,1.1,9,1.1,5.1,
-    5.1,9,1.1,5.1,
-    5.1,9,5.1,
+    根据符号模型和partType合并多余序号 使用正则表达式
 ###
 mergeSeqBySymbolRegex = (partArr, symbol, partType) ->
-  # symbol = '25233' # 图片rId11
-  s = "000000"
-  sl = s.length
+  # symbol = '1051;1011{0,10};1090;1011{0,10};1051'
+
+  # 类型字符串的长度 目前固定为4个字符
+  typeLength = PartType.none.length
+
   typeArr = []
   for part in partArr
-    typeLength = part.type.toString().length
-    typeArr.push(s.substring(0, sl - typeLength) + part.type)
+    typeArr.push part.type
   typeStr = typeArr.join('')
 
   # 这里改成先计算位置再合并的方式
-  sbls = symbol.split(',')
-  sblArr = []
+  sbls = symbol.split(';')
+  temSbls = []
   for sbl in sbls
-    sblLength = sbl.length
-    sblArr.push(s.substring(0, sl - sblLength) + sbl)
-  symbolStr = sblArr.join('')
+    if sbl.length == typeLength
+      temSbls.push sbl
+    else
+      s1 = sbl.substring(0, typeLength)
+      s2 = sbl.substring(typeLength)
+      temSbls.push "(#{s1})#{s2}"
+  symbolStr = temSbls.join('')
 
-  # 查找字符串位置
-  lastPos = 0
+  reg = new RegExp(symbolStr, 'g') # /1051(1011){0,10}1090(1011){0,10}1051/g
+  matchs = typeStr.match(reg)      # ["1051109010111051", "1051109010111051", "1051109010111051"]
+  matchs == nulllkllklk
+  matchObj = {}                    # 合并重复项
+  for m in matchs
+    continue if m.length == 4      # 对于单独一个PartType不做替换
+    matchObj[m] = m
+
+  # 查找匹配项的位置
   posArr = []
-  while(true)
-    index = typeStr.indexOf(symbolStr, lastPos)
-    break if index == -1
-    lastPos = index + 1
-    posArr.push {start : index / sl, end : index / sl + sbls.length }
+  for m of matchObj
+    console.log m
+    # 查找字符串位置
+    lastPos = 0
+    while(true)
+      index = typeStr.indexOf(m, lastPos)
+      break if index == -1
+      lastPos = index + 1
+      posArr.push {start : index / typeLength, end : index / typeLength + sbls.length }
 
   # 检查posArr是否有重叠
   endPos = 0
@@ -264,11 +267,14 @@ mergeSeqBySymbolRegex = (partArr, symbol, partType) ->
     firstPart = partArr[pos.start]
     for i in [pos.start...pos.end]
       part = partArr[i]
+      raw = part.raw
+      raw = ' ' if part.type == PartType.space
       part.type = PartType.none
-      combineStr.push part.raw
+      combineStr.push raw
     firstPart.raw = combineStr.join('')
     firstPart.type = partType
 
+  # 移除已经标记没用的Part
   arr = []
   for part in partArr
     arr.push(part) if part.type != PartType.none
