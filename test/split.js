@@ -116,10 +116,6 @@ mergePart = function(partArr) {
  */
 
 mergeSeq = function(partArr) {
-  partArr = mergeSeqBySymbol(partArr, '1020,1050,1020,1030,1030,1030', PartType.text);
-  partArr = mergeSeqBySymbol(partArr, '1020,1050,1020,1030,1020,1030', PartType.text);
-  partArr = mergeSeqBySymbol(partArr, '1020,1050,1020,1030,1030,1020', PartType.text);
-  partArr = mergeSeqBySymbol(partArr, '1020,1050,1020,1030,1030', PartType.text);
   partArr = mergeSeqBySymbol(partArr, '1020,1050,1020,1030', PartType.text);
   partArr = mergeSeqBySymbol(partArr, '1020,1011,1020', PartType.text);
   partArr = mergeSeqBySymbol(partArr, '1020,1011', PartType.text);
@@ -298,7 +294,7 @@ splitWrap = function(partArr) {
   var arr, index, j, k, len, len1, matchs, part, reg, s, ss, ssArr, str;
   arr = [];
   index = 0;
-  reg = / /g;
+  reg = /\n/g;
   for (j = 0, len = partArr.length; j < len; j++) {
     part = partArr[j];
     if (part.type !== PartType.none) {
@@ -313,7 +309,7 @@ splitWrap = function(partArr) {
       }
       continue;
     }
-    ss = str.replace(/( )/g, function(num, sub) {
+    ss = str.replace(/(\n)/g, function(num, sub) {
       return "\n-\n" + sub + "\n-\n";
     });
     ssArr = ss.split('\n-\n');

@@ -111,11 +111,11 @@ mergePart = (partArr) ->
 mergeSeq = (partArr) ->
 
   # 图片rId237
-  partArr = mergeSeqBySymbol(partArr, '1020,1050,1020,1030,1030,1030', PartType.text)
-  partArr = mergeSeqBySymbol(partArr, '1020,1050,1020,1030,1020,1030', PartType.text)
-  partArr = mergeSeqBySymbol(partArr, '1020,1050,1020,1030,1030,1020', PartType.text)
-  partArr = mergeSeqBySymbol(partArr, '1020,1050,1020,1030,1030', PartType.text)
   partArr = mergeSeqBySymbol(partArr, '1020,1050,1020,1030', PartType.text)
+  # partArr = mergeSeqBySymbol(partArr, '1020,1050,1020,1030,1020,1030', PartType.text)
+  # partArr = mergeSeqBySymbol(partArr, '1020,1050,1020,1030,1030,1020', PartType.text)
+  # partArr = mergeSeqBySymbol(partArr, '1020,1050,1020,1030,1030', PartType.text)
+  # partArr = mergeSeqBySymbol(partArr, '1020,1050,1020,1030', PartType.text)
   # 夹在文本中的空格
   partArr = mergeSeqBySymbol(partArr, '1020,1011,1020', PartType.text)
   partArr = mergeSeqBySymbol(partArr, '1020,1011', PartType.text)
@@ -280,7 +280,7 @@ mergeSeqBySymbolRegex = (partArr, symbol, partType) ->
 splitWrap = (partArr) ->
   arr = []
   index = 0
-  reg = / /g
+  reg = /\n/g
   for part in partArr
     if part.type != PartType.none
       arr.push part
@@ -290,7 +290,7 @@ splitWrap = (partArr) ->
     if !matchs?
       arr.push part if!matchs?
       continue
-    ss = str.replace /( )/g, (num, sub) ->
+    ss = str.replace /(\n)/g, (num, sub) ->
       return "\n-\n#{sub}\n-\n"
     ssArr = ss.split('\n-\n')
     for s in ssArr
