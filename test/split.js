@@ -1,4 +1,4 @@
-var EleType, Element, Part, PartType, Sequence, countIndex, fs, initSeqArr, mergePart, mergeSeq, mergeSeqBySymbol, mergeSeqBySymbolRegex, parsePartArr, parseQElement, print, seqArr, splitNum, splitSeq, splitSpace, splitStr, splitWrap, superReplace, tohtml;
+var EleType, Element, Part, PartType, Question, Sequence, countElementIndex, countIndex, fs, initSeqArr, mergePart, mergeSeq, mergeSeqBySymbol, mergeSeqBySymbolRegex, parsePartArr, parseQElement, print, seqArr, splitNum, splitSeq, splitSpace, splitStr, splitWrap, superReplace, tohtml;
 
 fs = require('fs');
 
@@ -48,6 +48,24 @@ Element = (function() {
 
 })();
 
+Question = (function() {
+  function Question(type, elements, start1, end1, last1, next, index1) {
+    this.type = type;
+    this.elements = elements;
+    this.start = start1;
+    this.end = end1;
+    this.last = last1;
+    this.next = next;
+    this.index = index1;
+    if (this.elements == null) {
+      this.elements = [];
+    }
+  }
+
+  return Question;
+
+})();
+
 PartType = {
   none: '1000',
   wrap: '1010',
@@ -94,6 +112,7 @@ exports.run = function(paperText) {
   tohtml.displayPartArr(partArr);
   eleArr = [];
   eleArr = parsePartArr(partArr);
+  countElementIndex(eleArr);
   console.table(eleArr);
   tohtml.displayElementArr(eleArr);
 };
@@ -678,6 +697,26 @@ countIndex = function(partArr) {
     last = part;
   }
   return partArr;
+};
+
+
+/*
+    计算Element索引
+ */
+
+countElementIndex = function(eleArr) {
+  var ele, i, j, last, len;
+  last = null;
+  for (i = j = 0, len = eleArr.length; j < len; i = ++j) {
+    ele = eleArr[i];
+    ele.index = i;
+    if (last != null) {
+      last.next = ele;
+    }
+    ele.last = last;
+    last = ele;
+  }
+  return eleArr;
 };
 
 seqArr = [];

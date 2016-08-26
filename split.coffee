@@ -12,6 +12,10 @@ class Element
   constructor: (@type, @parts, @start, @end, @last, @next, @index) ->
     @parts = [] if ! @parts?
 
+# 试题元素
+class Question
+  constructor: (@type, @elements, @start, @end, @last, @next, @index) ->
+    @elements = [] if ! @elements?
 
 PartType = {
   none         : '1000'    # 没有类型
@@ -73,6 +77,7 @@ exports.run = (paperText) ->
   eleArr = []
 # 查找试卷的基本元素
   eleArr = parsePartArr partArr
+  countElementIndex eleArr
   console.table eleArr
   tohtml.displayElementArr eleArr
 
@@ -560,6 +565,18 @@ countIndex = (partArr) ->
     part.type = PartType.text if part.type == PartType.none
     last = part
   partArr
+
+###
+    计算Element索引
+###
+countElementIndex = (eleArr) ->
+  last = null
+  for ele, i in eleArr
+    ele.index = i
+    last.next = ele if last?
+    ele.last = last
+    last = ele
+  eleArr
 
 # 序号
 seqArr = []
