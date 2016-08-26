@@ -1,10 +1,42 @@
-var PartTypeName, html_decode, html_encode, updateStats;
+var EleTypeName, PartTypeName, html_decode, html_encode, updateStats;
 
 exports.displayPartArr = function(partArr) {
   var i, j, len, part, results, table;
   if (typeof $ === "undefined" || $ === null) {
     console.dir(partArr);
     console.table(partArr);
+    return;
+  }
+  results = [];
+  results.push("<tr><th>no.</th><th>PartType</th><th>raw</th><th>index</th><th>PartTypeName</th></tr>");
+  for (i = j = 0, len = partArr.length; j < len; i = ++j) {
+    part = partArr[i];
+    results.push("<tr><td>" + i + "</td><td align='center'>" + part.type + "</td><td><code>\"" + (html_encode(part.raw)) + "\"</code></td><td>" + part.index + "</td><td align='center'><small>" + PartTypeName[part.type] + "</small></td></tr>");
+  }
+  table = document.getElementById('part_table');
+  table.innerHTML = results.join('');
+  return $('tr').each(function(num, tr) {
+    return $(tr).mousemove((function(_this) {
+      return function(e) {
+        if (e.ctrlKey) {
+          $(tr).addClass('select');
+        }
+        if (e.altKey) {
+          $(tr).removeClass('select');
+        }
+        if (e.ctrlKey || e.altKey) {
+          return updateStats();
+        }
+      };
+    })(this));
+  });
+};
+
+exports.displayElementArr = function(eleArr) {
+  var i, j, len, part, results, table;
+  if (typeof $ === "undefined" || $ === null) {
+    console.dir(eleArr);
+    console.table(eleArr);
     return;
   }
   results = [];
@@ -65,6 +97,18 @@ PartTypeName = {
   '1090': '解析',
   '1100': '点评',
   '1110': '难度'
+};
+
+EleTypeName = {
+  '1000': '没有类型',
+  '1010': '题号    ',
+  '1020': '题干    ',
+  '1030': '选项    ',
+  '1031': '选项号  ',
+  '1040': '答案    ',
+  '1050': '解析    ',
+  '1060': '点评    ',
+  '1070': '难度    '
 };
 
 html_encode = function(str) {

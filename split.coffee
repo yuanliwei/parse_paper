@@ -9,7 +9,7 @@ class Sequence
 
 # 试卷元素 （题号，题目，选项，答案，解析，点评，难度）
 class Element
-  constructor: (@type, @parts, @last, @next, @index) ->
+  constructor: (@type, @parts, @start, @end, @last, @next, @index) ->
     @parts = [] if ! @parts?
 
 
@@ -37,6 +37,7 @@ EleType = {
   qNo             : '1010'  # 题号
   qText           : '1020'  # 题干
   qOption         : '1030'  # 选项
+  qOptionNo       : '1031'  # 选项号
   qAnswer         : '1040'  # 答案
   qAnalysis       : '1050'  # 解析
   qCommen         : '1060'  # 点评
@@ -71,9 +72,9 @@ exports.run = (paperText) ->
 # 试卷的基本元素
   eleArr = []
 # 查找试卷的基本元素
-  # eleArr = parsePartArr partArr
-  # console.dir partArr
+  eleArr = parsePartArr partArr
   console.table eleArr
+  tohtml.displayElementArr eleArr
 
   # fs.writeFileSync('splitResult.txt', '\n')
 
@@ -148,6 +149,82 @@ mergeSeq = (partArr) ->
 
   partArr
 
+###
+    解析成试题单元 （题号，题干，选项，。。。。。）
+###
+parsePartArr = (partArr) ->
+  pTypeArr = []
+  for part in partArr
+    pTypeArr.push part.type
+  typeStr = pTypeArr.join('')
+
+  eleArr = []
+  # 题号
+  parseQElement(eleArr, EleType.qNo, '1010,(1030,)1020,1010', typeStr, partArr)
+  # 题干
+  parseQElement(eleArr, EleType.qText, '1010,1030,(1020,)1010', typeStr, partArr)
+  # 选项号
+  parseQElement(eleArr, EleType.qOptionNo, '1010,(1050,)1020,1050', typeStr, partArr)
+  parseQElement(eleArr, EleType.qOptionNo, '1050,1020,(1050,)1020', typeStr, partArr)
+  parseQElement(eleArr, EleType.qOptionNo, '1050,1020,(1050,)1020,1010', typeStr, partArr)
+  # 选项
+  parseQElement(eleArr, EleType.qOptionNo, '1010,1050,(1020,)1050', typeStr, partArr)
+  parseQElement(eleArr, EleType.qOptionNo, '1020,1050,(1020,)1050', typeStr, partArr)
+  parseQElement(eleArr, EleType.qOptionNo, '1020,1050,(1020,)1010', typeStr, partArr)
+  # 答案
+  parseQElement(eleArr, EleType.qAnswer, '1080,(1011,1050,)1010', typeStr, partArr)
+  # 解析
+  parseQElement(eleArr, EleType.qAnalysis, '1010,1090,(1020,)1010', typeStr, partArr)
+  # 点评
+  parseQElement(eleArr, EleType.qCommen, '1010,1100,(1020,)1010', typeStr, partArr)
+  # 难度
+  parseQElement(eleArr, EleType.qDifficulty, '1010,1110,(1020,)1010', typeStr, partArr)
+
+  # 排除重复项
+  temObj = {}
+  for ele in eleArr
+    key = ele.type + ele.start + ele.end
+    temObj[key] = ele
+  eleArr = []
+  for key of temObj
+    eleArr.push temObj[key]
+
+  # 排序
+  eleArr.sort (l, h) ->
+    l.start - h.start
+
+  return eleArr
+
+###
+    解析试题单元
+###
+parseQElement = (eleArr, eleType, symbol, typeStr, partArr) ->
+  # '1010,(1030,)1020,1010'
+  sym = symbol.replace(/,/g, '')
+  console.error "stop parseQElement"
+  # 类型字符串的长度 目前固定为4个字符
+  typeLength = PartType.none.length
+
+  reg = new RegExp(sym, 'g')
+
+  # index 20
+  # sub "1030"
+  # match "1010103010201010"
+
+  typeStr.replace reg, (match, sub, index, sss, www) ->
+    console.log sub
+    subMatchLength = sub.length / typeLength
+    subIndex = match.indexOf(sub)
+    start = (index + subIndex) / typeLength
+    end = start + subMatchLength
+    parts = []
+    for i in [start...end]
+      parts.push partArr[i]
+
+    # Element(@type, @parts, @start, @end, @last, @next, @index)
+    eleArr.push new Element(eleType, parts, start, end, null, null, 0)
+    sub # 这里随便返回一个值，没用
+  return
 
 ###
     根据符号模型和partType合并多余序号

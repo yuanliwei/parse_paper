@@ -1,4 +1,4 @@
-var EleType, Element, Part, PartType, Sequence, countIndex, fs, initSeqArr, mergePart, mergeSeq, mergeSeqBySymbol, mergeSeqBySymbolRegex, print, seqArr, splitNum, splitSeq, splitSpace, splitStr, splitWrap, tohtml;
+var EleType, Element, Part, PartType, Sequence, countIndex, fs, initSeqArr, mergePart, mergeSeq, mergeSeqBySymbol, mergeSeqBySymbolRegex, parsePartArr, parseQElement, print, seqArr, splitNum, splitSeq, splitSpace, splitStr, splitWrap, tohtml;
 
 fs = require('fs');
 
@@ -31,9 +31,11 @@ Sequence = (function() {
 })();
 
 Element = (function() {
-  function Element(type, parts, last1, next, index1) {
+  function Element(type, parts1, start1, end1, last1, next, index1) {
     this.type = type;
-    this.parts = parts;
+    this.parts = parts1;
+    this.start = start1;
+    this.end = end1;
     this.last = last1;
     this.next = next;
     this.index = index1;
@@ -68,6 +70,7 @@ EleType = {
   qNo: '1010',
   qText: '1020',
   qOption: '1030',
+  qOptionNo: '1031',
   qAnswer: '1040',
   qAnalysis: '1050',
   qCommen: '1060',
@@ -90,7 +93,9 @@ exports.run = function(paperText) {
   console.table(partArr);
   tohtml.displayPartArr(partArr);
   eleArr = [];
+  eleArr = parsePartArr(partArr);
   console.table(eleArr);
+  tohtml.displayElementArr(eleArr);
 };
 
 print = function() {
@@ -138,6 +143,75 @@ mergeSeq = function(partArr) {
   partArr = mergeSeqBySymbol(partArr, '1020,1030,1011', PartType.text);
   partArr = mergeSeqBySymbol(partArr, '1020,1030,1020', PartType.text);
   return partArr;
+};
+
+
+/*
+    解析成试题单元 （题号，题干，选项，。。。。。）
+ */
+
+parsePartArr = function(partArr) {
+  var ele, eleArr, j, k, key, len, len1, pTypeArr, part, temObj, typeStr;
+  pTypeArr = [];
+  for (j = 0, len = partArr.length; j < len; j++) {
+    part = partArr[j];
+    pTypeArr.push(part.type);
+  }
+  typeStr = pTypeArr.join('');
+  eleArr = [];
+  parseQElement(eleArr, EleType.qNo, '1010,(1030,)1020,1010', typeStr, partArr);
+  parseQElement(eleArr, EleType.qText, '1010,1030,(1020,)1010', typeStr, partArr);
+  parseQElement(eleArr, EleType.qOptionNo, '1010,(1050,)1020,1050', typeStr, partArr);
+  parseQElement(eleArr, EleType.qOptionNo, '1050,1020,(1050,)1020', typeStr, partArr);
+  parseQElement(eleArr, EleType.qOptionNo, '1050,1020,(1050,)1020,1010', typeStr, partArr);
+  parseQElement(eleArr, EleType.qOptionNo, '1010,1050,(1020,)1050', typeStr, partArr);
+  parseQElement(eleArr, EleType.qOptionNo, '1020,1050,(1020,)1050', typeStr, partArr);
+  parseQElement(eleArr, EleType.qOptionNo, '1020,1050,(1020,)1010', typeStr, partArr);
+  parseQElement(eleArr, EleType.qAnswer, '1080,(1011,1050,)1010', typeStr, partArr);
+  parseQElement(eleArr, EleType.qAnalysis, '1010,1090,(1020,)1010', typeStr, partArr);
+  parseQElement(eleArr, EleType.qCommen, '1010,1100,(1020,)1010', typeStr, partArr);
+  parseQElement(eleArr, EleType.qDifficulty, '1010,1110,(1020,)1010', typeStr, partArr);
+  temObj = {};
+  for (k = 0, len1 = eleArr.length; k < len1; k++) {
+    ele = eleArr[k];
+    key = ele.type + ele.start + ele.end;
+    temObj[key] = ele;
+  }
+  eleArr = [];
+  for (key in temObj) {
+    eleArr.push(temObj[key]);
+  }
+  eleArr.sort(function(l, h) {
+    return l.start - h.start;
+  });
+  return eleArr;
+};
+
+
+/*
+    解析试题单元
+ */
+
+parseQElement = function(eleArr, eleType, symbol, typeStr, partArr) {
+  var reg, sym, typeLength;
+  sym = symbol.replace(/,/g, '');
+  console.error("stop parseQElement");
+  typeLength = PartType.none.length;
+  reg = new RegExp(sym, 'g');
+  typeStr.replace(reg, function(match, sub, index, sss, www) {
+    var end, i, j, parts, ref, ref1, start, subIndex, subMatchLength;
+    console.log(sub);
+    subMatchLength = sub.length / typeLength;
+    subIndex = match.indexOf(sub);
+    start = (index + subIndex) / typeLength;
+    end = start + subMatchLength;
+    parts = [];
+    for (i = j = ref = start, ref1 = end; ref <= ref1 ? j < ref1 : j > ref1; i = ref <= ref1 ? ++j : --j) {
+      parts.push(partArr[i]);
+    }
+    eleArr.push(new Element(eleType, parts, start, end, null, null, 0));
+    return sub;
+  });
 };
 
 
