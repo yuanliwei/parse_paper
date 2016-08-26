@@ -22,9 +22,19 @@ exports.displayElementArr = (eleArr) ->
     return
   results = []
   results.push "<tr><th>no.</th><th>PartType</th><th>raw</th><th>index</th><th>PartTypeName</th></tr>"
-  for part, i in partArr
-    results.push "<tr><td>#{i}</td><td align='center'>#{part.type}</td><td><code>\"#{html_encode part.raw}\"</code></td><td>#{part.index}</td><td align='center'><small>#{PartTypeName[part.type]}</small></td></tr>"
-  table = document.getElementById('part_table')
+  for ele, i in eleArr
+    type = ele.type
+    raw = html_encode combineEleParts(ele.parts)
+    eleIndex = ele.index
+    eleName = EleTypeName[ele.type]
+    html_ = """<tr>
+                 <td>#{i}</td><td align='center'>#{type}</td>
+                 <td><code>\"#{raw}\"</code></td>
+                 <td>#{eleIndex}</td>
+                 <td align='center'><small>#{eleName}</small></td>
+              </tr>"""
+    results.push html_
+  table = document.getElementById('element_table')
   table.innerHTML = results.join('')
   $('tr').each (num, tr) ->
     $(tr).mousemove (e) =>
@@ -74,6 +84,12 @@ EleTypeName = {
   '1060' : '点评    '
   '1070' : '难度    '
 }
+
+combineEleParts = (partArr) ->
+  results = []
+  for part in partArr
+    results.push part.raw
+  results.join('').replace('<space>',' ')
 
 html_encode = (str) ->
   s = "";

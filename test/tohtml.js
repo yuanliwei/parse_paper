@@ -1,4 +1,4 @@
-var EleTypeName, PartTypeName, html_decode, html_encode, updateStats;
+var EleTypeName, PartTypeName, combineEleParts, html_decode, html_encode, updateStats;
 
 exports.displayPartArr = function(partArr) {
   var i, j, len, part, results, table;
@@ -33,7 +33,7 @@ exports.displayPartArr = function(partArr) {
 };
 
 exports.displayElementArr = function(eleArr) {
-  var i, j, len, part, results, table;
+  var ele, eleIndex, eleName, html_, i, j, len, raw, results, table, type;
   if (typeof $ === "undefined" || $ === null) {
     console.dir(eleArr);
     console.table(eleArr);
@@ -41,11 +41,16 @@ exports.displayElementArr = function(eleArr) {
   }
   results = [];
   results.push("<tr><th>no.</th><th>PartType</th><th>raw</th><th>index</th><th>PartTypeName</th></tr>");
-  for (i = j = 0, len = partArr.length; j < len; i = ++j) {
-    part = partArr[i];
-    results.push("<tr><td>" + i + "</td><td align='center'>" + part.type + "</td><td><code>\"" + (html_encode(part.raw)) + "\"</code></td><td>" + part.index + "</td><td align='center'><small>" + PartTypeName[part.type] + "</small></td></tr>");
+  for (i = j = 0, len = eleArr.length; j < len; i = ++j) {
+    ele = eleArr[i];
+    type = ele.type;
+    raw = html_encode(combineEleParts(ele.parts));
+    eleIndex = ele.index;
+    eleName = EleTypeName[ele.type];
+    html_ = "<tr>\n   <td>" + i + "</td><td align='center'>" + type + "</td>\n   <td><code>\"" + raw + "\"</code></td>\n   <td>" + eleIndex + "</td>\n   <td align='center'><small>" + eleName + "</small></td>\n</tr>";
+    results.push(html_);
   }
-  table = document.getElementById('part_table');
+  table = document.getElementById('element_table');
   table.innerHTML = results.join('');
   return $('tr').each(function(num, tr) {
     return $(tr).mousemove((function(_this) {
@@ -109,6 +114,16 @@ EleTypeName = {
   '1050': '解析    ',
   '1060': '点评    ',
   '1070': '难度    '
+};
+
+combineEleParts = function(partArr) {
+  var j, len, part, results;
+  results = [];
+  for (j = 0, len = partArr.length; j < len; j++) {
+    part = partArr[j];
+    results.push(part.raw);
+  }
+  return results.join('').replace('<space>', ' ');
 };
 
 html_encode = function(str) {
