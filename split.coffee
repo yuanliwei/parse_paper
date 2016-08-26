@@ -145,8 +145,6 @@ mergeSeq = (partArr) ->
   partArr = mergeSeqBySymbol(partArr, '1020,1030,1011', PartType.text)
   partArr = mergeSeqBySymbol(partArr, '1020,1030,1020', PartType.text)
 
-
-
   partArr
 
 ###
@@ -159,10 +157,10 @@ parsePartArr = (partArr) ->
   typeStr = pTypeArr.join('')
 
   eleArr = []
-  # # 题号
-  # parseQElement(eleArr, EleType.qNo, '1010,(1030,)1020,1010', typeStr, partArr)
-  # # 题干
-  # parseQElement(eleArr, EleType.qText, '1010,1030,(1020,)1010', typeStr, partArr)
+  # 题号
+  parseQElement(eleArr, EleType.qNo, '1010,(1030,)1020,1010', typeStr, partArr)
+  # 题干
+  parseQElement(eleArr, EleType.qText, '1010,1030,(1020,)1010', typeStr, partArr)
   # 选项号
   parseQElement(eleArr, EleType.qOptionNo, '1010,(1050,)1020,1050', typeStr, partArr)
   parseQElement(eleArr, EleType.qOptionNo, '1050,1020,(1050,)1020', typeStr, partArr)
@@ -170,16 +168,16 @@ parsePartArr = (partArr) ->
   # 选项
   parseQElement(eleArr, EleType.qOption, '1010,1050,(1020,)1050', typeStr, partArr)
   parseQElement(eleArr, EleType.qOption, '1020,1050,(1020,)1050', typeStr, partArr)
-  # parseQElement(eleArr, EleType.qOption, '1020,1050,(1020,)1050', typeStr, partArr)
-  # parseQElement(eleArr, EleType.qOption, '1020,1050,(1020,)1010', typeStr, partArr)
-  # # 答案
-  # parseQElement(eleArr, EleType.qAnswer, '1080,(1011,1050,)1010', typeStr, partArr)
-  # # 解析
-  # parseQElement(eleArr, EleType.qAnalysis, '1010,1090,(1020,)1010', typeStr, partArr)
-  # # 点评
-  # parseQElement(eleArr, EleType.qCommen, '1010,1100,(1020,)1010', typeStr, partArr)
-  # # 难度
-  # parseQElement(eleArr, EleType.qDifficulty, '1010,1110,(1020,)1010', typeStr, partArr)
+  parseQElement(eleArr, EleType.qOption, '1020,1050,(1020,)1050', typeStr, partArr)
+  parseQElement(eleArr, EleType.qOption, '1020,1050,(1020,)1010', typeStr, partArr)
+  # 答案
+  parseQElement(eleArr, EleType.qAnswer, '1080,(1011,1050,)1010', typeStr, partArr)
+  # 解析
+  parseQElement(eleArr, EleType.qAnalysis, '1010,1090,(1020,)1010', typeStr, partArr)
+  # 点评
+  parseQElement(eleArr, EleType.qCommen, '1010,1100,(1020,)1010', typeStr, partArr)
+  # 难度
+  parseQElement(eleArr, EleType.qDifficulty, '1010,1110,(1020,)1010', typeStr, partArr)
 
   # 排除重复项
   temObj = {}
@@ -210,10 +208,8 @@ parseQElement = (eleArr, eleType, symbol, typeStr, partArr) ->
   # index 20
   # sub "1030"
   # match "1010103010201010"
-
-  typeStr.replace reg, (match, sub, index) =>
-    console.log sub
-    console.dir reg
+  # console.error "stop superReplace!"
+  superReplace typeStr, sym, (match, sub, index) =>
     subMatchLength = sub.length / typeLength
     subIndex = sym.indexOf("(#{sub}")
     start = (index + subIndex) / typeLength
@@ -229,6 +225,22 @@ parseQElement = (eleArr, eleType, symbol, typeStr, partArr) ->
     eleArr.push new Element(eleType, parts, start, end, null, null, 0)
     sub # 这里随便返回一个值，没用
   return
+
+###
+    超级替换
+###
+superReplace = (typeStr, reg, callback) ->
+  lastIndex = 0
+  regex = new RegExp(reg)
+  count = 0
+  while(lastIndex < typeStr.length)
+    temStr = typeStr.substring(lastIndex)
+    ss = temStr.replace regex, (match, sub, index) =>
+      callback match, sub, lastIndex + index
+      lastIndex += index + 1
+    break if temStr == ss || count++ > 1000
+
+
 
 ###
     根据符号模型和partType合并多余序号

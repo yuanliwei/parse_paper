@@ -1,4 +1,4 @@
-var EleType, Element, Part, PartType, Sequence, countIndex, fs, initSeqArr, mergePart, mergeSeq, mergeSeqBySymbol, mergeSeqBySymbolRegex, parsePartArr, parseQElement, print, seqArr, splitNum, splitSeq, splitSpace, splitStr, splitWrap, tohtml;
+var EleType, Element, Part, PartType, Sequence, countIndex, fs, initSeqArr, mergePart, mergeSeq, mergeSeqBySymbol, mergeSeqBySymbolRegex, parsePartArr, parseQElement, print, seqArr, splitNum, splitSeq, splitSpace, splitStr, splitWrap, superReplace, tohtml;
 
 fs = require('fs');
 
@@ -159,10 +159,18 @@ parsePartArr = function(partArr) {
   }
   typeStr = pTypeArr.join('');
   eleArr = [];
+  parseQElement(eleArr, EleType.qNo, '1010,(1030,)1020,1010', typeStr, partArr);
+  parseQElement(eleArr, EleType.qText, '1010,1030,(1020,)1010', typeStr, partArr);
   parseQElement(eleArr, EleType.qOptionNo, '1010,(1050,)1020,1050', typeStr, partArr);
   parseQElement(eleArr, EleType.qOptionNo, '1050,1020,(1050,)1020', typeStr, partArr);
   parseQElement(eleArr, EleType.qOption, '1010,1050,(1020,)1050', typeStr, partArr);
   parseQElement(eleArr, EleType.qOption, '1020,1050,(1020,)1050', typeStr, partArr);
+  parseQElement(eleArr, EleType.qOption, '1020,1050,(1020,)1050', typeStr, partArr);
+  parseQElement(eleArr, EleType.qOption, '1020,1050,(1020,)1010', typeStr, partArr);
+  parseQElement(eleArr, EleType.qAnswer, '1080,(1011,1050,)1010', typeStr, partArr);
+  parseQElement(eleArr, EleType.qAnalysis, '1010,1090,(1020,)1010', typeStr, partArr);
+  parseQElement(eleArr, EleType.qCommen, '1010,1100,(1020,)1010', typeStr, partArr);
+  parseQElement(eleArr, EleType.qDifficulty, '1010,1110,(1020,)1010', typeStr, partArr);
   temObj = {};
   for (k = 0, len1 = eleArr.length; k < len1; k++) {
     ele = eleArr[k];
@@ -189,11 +197,9 @@ parseQElement = function(eleArr, eleType, symbol, typeStr, partArr) {
   sym = symbol.replace(/,/g, '');
   typeLength = PartType.none.length;
   reg = new RegExp(sym, 'g');
-  typeStr.replace(reg, (function(_this) {
+  superReplace(typeStr, sym, (function(_this) {
     return function(match, sub, index) {
       var end, i, j, parts, ref, ref1, start, subIndex, subMatchLength;
-      console.log(sub);
-      console.dir(reg);
       subMatchLength = sub.length / typeLength;
       subIndex = sym.indexOf("(" + sub);
       start = (index + subIndex) / typeLength;
@@ -209,6 +215,34 @@ parseQElement = function(eleArr, eleType, symbol, typeStr, partArr) {
       return sub;
     };
   })(this));
+};
+
+
+/*
+    超级替换
+ */
+
+superReplace = function(typeStr, reg, callback) {
+  var count, lastIndex, regex, results, ss, temStr;
+  lastIndex = 0;
+  regex = new RegExp(reg);
+  count = 0;
+  results = [];
+  while (lastIndex < typeStr.length) {
+    temStr = typeStr.substring(lastIndex);
+    ss = temStr.replace(regex, (function(_this) {
+      return function(match, sub, index) {
+        callback(match, sub, lastIndex + index);
+        return lastIndex += index + 1;
+      };
+    })(this));
+    if (temStr === ss || count++ > 1000) {
+      break;
+    } else {
+      results.push(void 0);
+    }
+  }
+  return results;
 };
 
 
