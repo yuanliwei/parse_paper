@@ -1,7 +1,7 @@
-var EleTypeName, PartTypeName, combineEleParts, html_decode, html_encode, updateStats;
+var EleTypeName, PartTypeName, combineEleParts, html_decode, html_encode, readPaperFromTextarea, updateStats;
 
 exports.displayPartArr = function(partArr) {
-  var i, j, len, part, results, table;
+  var html_, i, j, len, part, results, table;
   if (typeof $ === "undefined" || $ === null) {
     console.dir(partArr);
     console.table(partArr);
@@ -11,7 +11,8 @@ exports.displayPartArr = function(partArr) {
   results.push("<tr><th>no.</th><th>PartType</th><th>raw</th><th>index</th><th>PartTypeName</th></tr>");
   for (i = j = 0, len = partArr.length; j < len; i = ++j) {
     part = partArr[i];
-    results.push("<tr><td>" + i + "</td><td align='center'>" + part.type + "</td><td><code>\"" + (html_encode(part.raw)) + "\"</code></td><td>" + part.index + "</td><td align='center'><small>" + PartTypeName[part.type] + "</small></td></tr>");
+    html_ = "<tr>\n  <td>" + i + "</td>\n  <td align='center'>" + part.type + "</td>\n  <td><code>\"" + (html_encode(part.raw)) + "\"</code></td>\n  <td>" + part.index + "</td>\n  <td align='center'><small>" + PartTypeName[part.type] + "</small></td>\n</tr>";
+    results.push(html_);
   }
   table = document.getElementById('part_table');
   table.innerHTML = results.join('');
@@ -40,7 +41,7 @@ exports.displayElementArr = function(eleArr) {
     return;
   }
   results = [];
-  results.push("<tr><th>no.</th><th>PartType</th><th>raw</th><th>index</th><th>PartTypeName</th></tr>");
+  results.push("<tr><th>no.</th><th>ElementType</th><th>raw</th><th>index</th><th>PartTypeName</th></tr>");
   for (i = j = 0, len = eleArr.length; j < len; i = ++j) {
     ele = eleArr[i];
     type = ele.type;
@@ -156,4 +157,11 @@ html_decode = function(str) {
   s = s.replace(/&quot;/g, "\"");
   s = s.replace(/<br>/g, "\n");
   return s;
+};
+
+readPaperFromTextarea = function() {
+  var paperText, textarea;
+  textarea = $('#text_input')[0];
+  paperText = textarea.value;
+  return split.run(paperText);
 };

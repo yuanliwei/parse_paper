@@ -6,7 +6,15 @@ exports.displayPartArr = (partArr) ->
   results = []
   results.push "<tr><th>no.</th><th>PartType</th><th>raw</th><th>index</th><th>PartTypeName</th></tr>"
   for part, i in partArr
-    results.push "<tr><td>#{i}</td><td align='center'>#{part.type}</td><td><code>\"#{html_encode part.raw}\"</code></td><td>#{part.index}</td><td align='center'><small>#{PartTypeName[part.type]}</small></td></tr>"
+    html_ = """<tr>
+                <td>#{i}</td>
+                <td align='center'>#{part.type}</td>
+                <td><code>"#{html_encode part.raw}"</code></td>
+                <td>#{part.index}</td>
+                <td align='center'><small>#{PartTypeName[part.type]}</small></td>
+              </tr>
+    """
+    results.push html_
   table = document.getElementById('part_table')
   table.innerHTML = results.join('')
   $('tr').each (num, tr) ->
@@ -21,7 +29,7 @@ exports.displayElementArr = (eleArr) ->
     console.table eleArr
     return
   results = []
-  results.push "<tr><th>no.</th><th>PartType</th><th>raw</th><th>index</th><th>PartTypeName</th></tr>"
+  results.push "<tr><th>no.</th><th>ElementType</th><th>raw</th><th>index</th><th>PartTypeName</th></tr>"
   for ele, i in eleArr
     type = ele.type
     raw = html_encode combineEleParts(ele.parts)
@@ -29,7 +37,7 @@ exports.displayElementArr = (eleArr) ->
     eleName = EleTypeName[ele.type]
     html_ = """<tr>
                  <td>#{i}</td><td align='center'>#{type}</td>
-                 <td><code>\"#{raw}\"</code></td>
+                 <td><code>"#{raw}"</code></td>
                  <td>#{eleIndex}</td>
                  <td align='center'><small>#{eleName}</small></td>
               </tr>"""
@@ -114,3 +122,8 @@ html_decode = (str) ->
   s = s.replace(/&quot;/g, "\"");
   s = s.replace(/<br>/g, "\n");
   return s;
+
+readPaperFromTextarea = ->
+  textarea = $('#text_input')[0]
+  paperText = textarea.value
+  split.run(paperText)

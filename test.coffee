@@ -15,4 +15,26 @@ test = ->
   console.log num.toString()
   console.log s
 
+  splitKeyChar(prefix, char, partArr)
+
+###
+    以带有指定前缀的字符分割字符串
+###
+splitKeyCharWithPrefix = (prefix, keyChar, partArr) ->
+  arr = []
+  reg = new RegExp("#{prefix}(#{keyChar})")
+  for part, i in partArr
+    raw = part.raw
+    repRaw = raw.replace reg, (mainStr, sub, index) =>
+      "#{prefix}#{sub}-#{sub}#{sub}#{sub}-#{sub}"
+    spArr = repRaw.split "#{keyChar}-#{keyChar}"
+
+    reg = new RegExp("^#{keyChar}$")
+    for sp in spArr
+      reg.lastIndex = 0
+      if reg.test sp
+        # body...
+
+  arr
+
 test()
