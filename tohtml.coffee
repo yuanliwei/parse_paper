@@ -230,3 +230,108 @@ clearDataFromStorage = ->
   textarea.value = localStorage.savePaperData = ''
   paperText = fs.readFileSync()
   split.run(paperText)
+
+mergeSelectItem = ->
+  trs = $('.select')
+  console.dir trs
+  return if trs?.length < 2
+  ids = []
+  for tr in trs
+    id = tr.attributes.id.value
+    continue if !id.startsWith('part') # 目前只支持Part分割
+    index = parseInt id.substring(id.lastIndexOf('_') + 1)
+    ids.push index
+  return if ids?.length < 2
+  last = 0
+  for id, i in ids
+    if i == 0
+      last = id
+    else
+      if last + 1 != id
+        alert('合并项需要连续！')
+        return
+      last = id
+  parts = partArr_
+  first = null
+  combineStr = []
+  for id, i in ids
+    raw = parts[id].raw
+    raw = ' ' if parts[id].type == PartType.space
+    parts[id].type = PartType.none if i!= 0
+    combineStr.push raw
+  parts[ids[0]].raw = combineStr.join('')
+  parts[ids[0]].type = PartType.text
+
+  partArr = parts
+  arr = []
+  for part in partArr
+    arr.push(part) if part.type != PartType.none
+  arr = countIndex(arr)
+
+  # 重新运行合并完后的代码
+  partArr = arr
+  console.table partArr
+  tohtml.displayPartArr partArr
+  # 试卷的基本元素
+  eleArr = []
+  # 查找试卷的基本元素
+  eleArr = parsePartArr partArr
+  countElementIndex eleArr
+  # console.table eleArr
+  tohtml.displayElementArr eleArr
+
+  # 试卷中的题
+  questionArr = []
+  questionArr = parseQuestionArr eleArr
+  countQuestionIndex questionArr
+  console.table questionArr
+  tohtml.displayQuestionArr questionArr
+
+
+splitSelectItem = ->
+  trs = $('.select')
+  console.dir trs
+  return if trs?.length < 1
+  if trs.length > 1
+    alert('只能选择一项分割！')
+    return
+  id = trs[0].attributes.id.value
+  return if !id.startsWith('part') # 目前只支持Part分割
+  index = parseInt id.substring(id.lastIndexOf('_') + 1)
+
+  parts = partArr_
+  part = parts[index]
+  part.type = PartType.none
+  part.raw = part.raw.replace(/<br>/g, '\n')
+  partArr = []
+  partArr.push part
+  partArr = splitPart partArr
+
+  temArr = []
+  for part, i in parts
+    if( i == index)
+      for p in partArr
+        temArr.push p
+    else
+      temArr.push part
+  partArr = temArr
+
+  partArr = countIndex(partArr)
+
+  # 重新运行分割完后的代码
+  console.table partArr
+  tohtml.displayPartArr partArr
+# 试卷的基本元素
+  eleArr = []
+# 查找试卷的基本元素
+  eleArr = parsePartArr partArr
+  countElementIndex eleArr
+  # console.table eleArr
+  tohtml.displayElementArr eleArr
+
+  # 试卷中的题
+  questionArr = []
+  questionArr = parseQuestionArr eleArr
+  countQuestionIndex questionArr
+  console.table questionArr
+  tohtml.displayQuestionArr questionArr

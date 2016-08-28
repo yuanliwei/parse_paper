@@ -75,6 +75,43 @@ exports.run = (paperText) ->
   rootPart = new Part(PartType.none, paperText, null, null, 0)
   partArr.push rootPart
 
+# 分割Part
+  partArr = splitPart partArr
+
+# 合并多余的Part
+  partArr = mergePart partArr
+  console.table partArr
+  tohtml.displayPartArr partArr
+# 试卷的基本元素
+  eleArr = []
+# 查找试卷的基本元素
+  eleArr = parsePartArr partArr
+  countElementIndex eleArr
+  # console.table eleArr
+  console.log "=============  over time #{Date.now() - time}"
+  tohtml.displayElementArr eleArr
+
+  # 试卷中的题
+  questionArr = []
+  questionArr = parseQuestionArr eleArr
+  countQuestionIndex questionArr
+  console.table questionArr
+  tohtml.displayQuestionArr questionArr
+
+  # fs.writeFileSync('splitResult.txt', '\n')
+
+  # for part in partArr
+  #   # console.dir " #{part.raw}"
+  #   fs.appendFileSync('splitResult.txt', part.raw)
+  return
+
+print = ->
+  console.log 'call print function'
+
+###
+    分割Part
+###
+splitPart = (partArr) ->
   # 分割单词、文本
   partArr = splitWord partArr
 
@@ -116,36 +153,6 @@ exports.run = (paperText) ->
   partArr = splitSpace partArr
 # 整理Part序号
   partArr = countIndex partArr
-
-# 合并多余的Part
-  partArr = mergePart partArr
-  console.table partArr
-  tohtml.displayPartArr partArr
-# 试卷的基本元素
-  eleArr = []
-# 查找试卷的基本元素
-  eleArr = parsePartArr partArr
-  countElementIndex eleArr
-  # console.table eleArr
-  console.log "=============  over time #{Date.now() - time}"
-  tohtml.displayElementArr eleArr
-
-  # 试卷中的题
-  questionArr = []
-  questionArr = parseQuestionArr eleArr
-  countQuestionIndex questionArr
-  console.table questionArr
-  tohtml.displayQuestionArr questionArr
-
-  # fs.writeFileSync('splitResult.txt', '\n')
-
-  # for part in partArr
-  #   # console.dir " #{part.raw}"
-  #   fs.appendFileSync('splitResult.txt', part.raw)
-  return
-
-print = ->
-  console.log 'call print function'
 
 ###
     合并多余的Part

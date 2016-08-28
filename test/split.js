@@ -1,4 +1,4 @@
-var EleType, Element, Part, PartType, Question, QuestionType, Sequence, countElementIndex, countIndex, countQuestionIndex, fs, mergePart, mergeSeq, mergeSeqBySymbol, mergeSeqBySymbolRegex, parsePartArr, parseQElement, parseQuestion, parseQuestionArr, print, splitKeyCharWithPrefix, splitKeyWord, splitNum, splitSeqChar, splitSpace, splitStr, splitWord, splitWrap, superReplace, tohtml;
+var EleType, Element, Part, PartType, Question, QuestionType, Sequence, countElementIndex, countIndex, countQuestionIndex, fs, mergePart, mergeSeq, mergeSeqBySymbol, mergeSeqBySymbolRegex, parsePartArr, parseQElement, parseQuestion, parseQuestionArr, print, splitKeyCharWithPrefix, splitKeyWord, splitNum, splitPart, splitSeqChar, splitSpace, splitStr, splitWord, splitWrap, superReplace, tohtml;
 
 fs = require('fs');
 
@@ -124,13 +124,40 @@ QuestionType = {
 };
 
 exports.run = function(paperText) {
-  var eleArr, j, k, len, len1, partArr, questionArr, rootPart, s, seqArr, seqs, time;
+  var eleArr, partArr, questionArr, rootPart, time;
   console.log('run into run function');
   time = Date.now();
   print();
   partArr = [];
   rootPart = new Part(PartType.none, paperText, null, null, 0);
   partArr.push(rootPart);
+  partArr = splitPart(partArr);
+  partArr = mergePart(partArr);
+  console.table(partArr);
+  tohtml.displayPartArr(partArr);
+  eleArr = [];
+  eleArr = parsePartArr(partArr);
+  countElementIndex(eleArr);
+  console.log("=============  over time " + (Date.now() - time));
+  tohtml.displayElementArr(eleArr);
+  questionArr = [];
+  questionArr = parseQuestionArr(eleArr);
+  countQuestionIndex(questionArr);
+  console.table(questionArr);
+  tohtml.displayQuestionArr(questionArr);
+};
+
+print = function() {
+  return console.log('call print function');
+};
+
+
+/*
+    分割Part
+ */
+
+splitPart = function(partArr) {
+  var j, k, len, len1, s, seqArr, seqs;
   partArr = splitWord(partArr);
   seqArr = [];
   seqArr.push(new Sequence(PartType.qOption, "选择题", null, null, 0));
@@ -163,24 +190,7 @@ exports.run = function(paperText) {
   partArr = splitWrap(partArr);
   partArr = splitNum(partArr);
   partArr = splitSpace(partArr);
-  partArr = countIndex(partArr);
-  partArr = mergePart(partArr);
-  console.table(partArr);
-  tohtml.displayPartArr(partArr);
-  eleArr = [];
-  eleArr = parsePartArr(partArr);
-  countElementIndex(eleArr);
-  console.log("=============  over time " + (Date.now() - time));
-  tohtml.displayElementArr(eleArr);
-  questionArr = [];
-  questionArr = parseQuestionArr(eleArr);
-  countQuestionIndex(questionArr);
-  console.table(questionArr);
-  tohtml.displayQuestionArr(questionArr);
-};
-
-print = function() {
-  return console.log('call print function');
+  return partArr = countIndex(partArr);
 };
 
 

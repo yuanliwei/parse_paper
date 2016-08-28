@@ -1,4 +1,4 @@
-var EleTypeName, PartTypeName, QuestionTypeName, clearDataFromStorage, combineEleParts, combineQuestionElements, eleArr_, html_decode, html_encode, loadDataFromStorage, partArr_, questionArr_, readPaperFromTextarea, updateStats;
+var EleTypeName, PartTypeName, QuestionTypeName, clearDataFromStorage, combineEleParts, combineQuestionElements, eleArr_, html_decode, html_encode, loadDataFromStorage, mergeSelectItem, partArr_, questionArr_, readPaperFromTextarea, splitSelectItem, updateStats;
 
 partArr_ = null;
 
@@ -309,4 +309,126 @@ clearDataFromStorage = function() {
   textarea.value = localStorage.savePaperData = '';
   paperText = fs.readFileSync();
   return split.run(paperText);
+};
+
+mergeSelectItem = function() {
+  var arr, combineStr, eleArr, first, i, id, ids, index, j, k, l, last, len, len1, len2, len3, m, part, partArr, parts, questionArr, raw, tr, trs;
+  trs = $('.select');
+  console.dir(trs);
+  if ((trs != null ? trs.length : void 0) < 2) {
+    return;
+  }
+  ids = [];
+  for (j = 0, len = trs.length; j < len; j++) {
+    tr = trs[j];
+    id = tr.attributes.id.value;
+    if (!id.startsWith('part')) {
+      continue;
+    }
+    index = parseInt(id.substring(id.lastIndexOf('_') + 1));
+    ids.push(index);
+  }
+  if ((ids != null ? ids.length : void 0) < 2) {
+    return;
+  }
+  last = 0;
+  for (i = k = 0, len1 = ids.length; k < len1; i = ++k) {
+    id = ids[i];
+    if (i === 0) {
+      last = id;
+    } else {
+      if (last + 1 !== id) {
+        alert('合并项需要连续！');
+        return;
+      }
+      last = id;
+    }
+  }
+  parts = partArr_;
+  first = null;
+  combineStr = [];
+  for (i = l = 0, len2 = ids.length; l < len2; i = ++l) {
+    id = ids[i];
+    raw = parts[id].raw;
+    if (parts[id].type === PartType.space) {
+      raw = ' ';
+    }
+    if (i !== 0) {
+      parts[id].type = PartType.none;
+    }
+    combineStr.push(raw);
+  }
+  parts[ids[0]].raw = combineStr.join('');
+  parts[ids[0]].type = PartType.text;
+  partArr = parts;
+  arr = [];
+  for (m = 0, len3 = partArr.length; m < len3; m++) {
+    part = partArr[m];
+    if (part.type !== PartType.none) {
+      arr.push(part);
+    }
+  }
+  arr = countIndex(arr);
+  partArr = arr;
+  console.table(partArr);
+  tohtml.displayPartArr(partArr);
+  eleArr = [];
+  eleArr = parsePartArr(partArr);
+  countElementIndex(eleArr);
+  tohtml.displayElementArr(eleArr);
+  questionArr = [];
+  questionArr = parseQuestionArr(eleArr);
+  countQuestionIndex(questionArr);
+  console.table(questionArr);
+  return tohtml.displayQuestionArr(questionArr);
+};
+
+splitSelectItem = function() {
+  var eleArr, i, id, index, j, k, len, len1, p, part, partArr, parts, questionArr, temArr, trs;
+  trs = $('.select');
+  console.dir(trs);
+  if ((trs != null ? trs.length : void 0) < 1) {
+    return;
+  }
+  if (trs.length > 1) {
+    alert('只能选择一项分割！');
+    return;
+  }
+  id = trs[0].attributes.id.value;
+  if (!id.startsWith('part')) {
+    return;
+  }
+  index = parseInt(id.substring(id.lastIndexOf('_') + 1));
+  parts = partArr_;
+  part = parts[index];
+  part.type = PartType.none;
+  part.raw = part.raw.replace(/<br>/g, '\n');
+  partArr = [];
+  partArr.push(part);
+  partArr = splitPart(partArr);
+  temArr = [];
+  for (i = j = 0, len = parts.length; j < len; i = ++j) {
+    part = parts[i];
+    if (i === index) {
+      for (k = 0, len1 = partArr.length; k < len1; k++) {
+        p = partArr[k];
+        temArr.push(p);
+      }
+    } else {
+      temArr.push(part);
+    }
+  }
+  partArr = temArr;
+  partArr = countIndex(partArr);
+  console.table(partArr);
+  tohtml.displayPartArr(partArr);
+  eleArr = [];
+  eleArr = parsePartArr(partArr);
+  countElementIndex(eleArr);
+  tohtml.displayElementArr(eleArr);
+  questionArr = [];
+  questionArr = parseQuestionArr(eleArr);
+  countQuestionIndex(questionArr);
+  console.table(questionArr);
+  return tohtml.displayQuestionArr(questionArr);
 };
