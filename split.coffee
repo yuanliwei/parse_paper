@@ -16,6 +16,19 @@ class Element
 class Question
   constructor: (@type, @elements, @start, @end, @last, @next, @index) ->
     @elements = [] if ! @elements?
+    @qOptions = []
+    temObj = {}
+    for e in @elements
+      temObj[e.type] = e
+      if e.type == EleType.qOptionNo && e.next?.type == EleType.qOption
+        @qOptions.push {'no': e, 'text': e.next}
+    @qNo         = temObj[EleType.qNo        ]
+    @qType       = temObj[EleType.qType      ]
+    @qText       = temObj[EleType.qText      ]
+    @qAnswer     = temObj[EleType.qAnswer    ]
+    @qAnalysis   = temObj[EleType.qAnalysis  ]
+    @qCommen     = temObj[EleType.qCommen    ]
+    @qDifficulty = temObj[EleType.qDifficulty]
 
 PartType = {
   none         : '1000'    # 没有类型
@@ -33,8 +46,7 @@ PartType = {
   qAnalysis    : '1090'      # 解析
   qCommen      : '1100'     # 点评
   qDifficulty  : '1110'     # 难度
-}
-
+  }
 
 EleType = {
   none            : '1000'  # 没有类型
@@ -47,10 +59,17 @@ EleType = {
   qAnalysis       : '1050'  # 解析
   qCommen         : '1060'  # 点评
   qDifficulty     : '1070'  # 难度
-}
+  }
+
+QuestionType = {
+  none            : '1000'  # 没有类型
+  single          : '1010'  # 单选题
+  question        : '1020'  # 问答题
+  }
 
 exports.run = (paperText) ->
   console.log 'run into run function'
+  time = Date.now()
   print()
   partArr = []
   rootPart = new Part(PartType.none, paperText, null, null, 0)
@@ -107,8 +126,16 @@ exports.run = (paperText) ->
 # 查找试卷的基本元素
   eleArr = parsePartArr partArr
   countElementIndex eleArr
-  console.table eleArr
+  # console.table eleArr
+  console.log "=============  over time #{Date.now() - time}"
   tohtml.displayElementArr eleArr
+
+  # 试卷中的题
+  questionArr = []
+  questionArr = parseQuestionArr eleArr
+  countQuestionIndex questionArr
+  console.table questionArr
+  tohtml.displayQuestionArr questionArr
 
   # fs.writeFileSync('splitResult.txt', '\n')
 
@@ -238,6 +265,31 @@ parsePartArr = (partArr) ->
 
   return eleArr
 
+parseQuestionArr = (eleArr) ->
+  eTypeArr = []
+  for element in eleArr
+    eTypeArr.push element.type
+  typeStr = eTypeArr.join('')
+
+  questionArr = []
+  # 单选题
+  parseQuestion(questionArr, QuestionType.single, '(1010,1020,1031,1030,1031,1030,1031,1030,1031,1030,1040,1050,1060,1070)', typeStr, eleArr)
+  # 问答题
+  parseQuestion(questionArr, QuestionType.question, '(1010,1020,1050,1060,1070)', typeStr, eleArr)
+  # 排除重复项
+  temObj = {}
+  for ele in questionArr
+    key = ele.type + ele.start + ele.end
+    temObj[key] = ele
+  questionArr = []
+  for key of temObj
+    questionArr.push temObj[key]
+
+  # 排序
+  questionArr.sort (l, h) ->
+    l.start - h.start
+
+  return questionArr
 ###
     解析试题单元
 ###
@@ -267,6 +319,34 @@ parseQElement = (eleArr, eleType, symbol, typeStr, partArr) ->
 
     # Element(@type, @parts, @start, @end, @last, @next, @index)
     eleArr.push new Element(eleType, parts, start, end, null, null, 0)
+    sub # 这里随便返回一个值，没用
+  return
+
+###
+    解析试题
+###
+parseQuestion = (questionArr, questionType, symbol, typeStr, eleArr) ->
+  # '1010,(1030,)1020,1010'
+  sym = symbol.replace(/,/g, '')
+  # 类型字符串的长度 目前固定为4个字符
+  typeLength = EleType.none.length
+
+  reg = new RegExp(sym, 'g')
+
+  superReplace typeStr, sym, (match, sub, index) =>
+    subMatchLength = sub.length / typeLength
+    subIndex = sym.indexOf("(#{sub}")
+    start = (index + subIndex) / typeLength
+    end = start + subMatchLength
+    if start % 1 != 0 || end % 1 != 0
+      console.error "count index error!"
+
+    elements = []
+    for i in [start...end]
+      elements.push eleArr[i]
+
+    # Question(@type, @elements, @start, @end, @last, @next, @index)
+    questionArr.push new Question(questionType, elements, start, end, null, null, 0)
     sub # 这里随便返回一个值，没用
   return
 
@@ -377,7 +457,6 @@ mergeSeqBySymbolRegex = (partArr, symbol, partType) ->
   # 查找匹配项的位置
   posArr = []
   for m of matchObj
-    console.log m
     # 查找字符串位置
     lastPos = 0
     while(true)
@@ -410,7 +489,7 @@ mergeSeqBySymbolRegex = (partArr, symbol, partType) ->
     s1 = []
     for i in [pos.start...pos.end]
       s1.push partArr[i].type
-    console.log s1.join(' ')
+    # console.log s1.join(' ')
     for i in [pos.start...pos.end]
       part = partArr[i]
       raw = part.raw
@@ -666,3 +745,14 @@ countElementIndex = (eleArr) ->
     ele.last = last
     last = ele
   eleArr
+###
+    计算Question索引
+###
+countQuestionIndex = (questionArr) ->
+  last = null
+  for question, i in questionArr
+    question.index = i
+    last.next = question if last?
+    question.last = last
+    last = question
+  questionArr

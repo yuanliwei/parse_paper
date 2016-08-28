@@ -1,4 +1,8 @@
+partArr_ = null
+eleArr_ = null
+questionArr_ = null
 exports.displayPartArr = (partArr) ->
+  partArr_ = partArr
   if(!$?)
     console.dir partArr
     console.table partArr
@@ -6,7 +10,7 @@ exports.displayPartArr = (partArr) ->
   results = []
   results.push "<tr><th>no.</th><th>PartType</th><th>raw</th><th>index</th><th>PartTypeName</th></tr>"
   for part, i in partArr
-    html_ = """<tr>
+    html_ = """<tr id='part_#{i}'>
                 <td>#{i}</td>
                 <td align='center'>#{part.type}</td>
                 <td><code>"#{html_encode part.raw}"</code></td>
@@ -24,18 +28,19 @@ exports.displayPartArr = (partArr) ->
       updateStats() if e.ctrlKey || e.altKey
 
 exports.displayElementArr = (eleArr) ->
+  eleArr_ = eleArr
   if(!$?)
     console.dir eleArr
     console.table eleArr
     return
   results = []
-  results.push "<tr><th>no.</th><th>ElementType</th><th>raw</th><th>index</th><th>PartTypeName</th></tr>"
+  results.push "<tr><th>no.</th><th>ElementType</th><th>raw</th><th>index</th><th>ElementTypeName</th></tr>"
   for ele, i in eleArr
     type = ele.type
     raw = html_encode combineEleParts(ele.parts)
     eleIndex = ele.index
     eleName = EleTypeName[ele.type]
-    html_ = """<tr>
+    html_ = """<tr id='element_#{i}'>
                  <td>#{i}</td><td align='center'>#{type}</td>
                  <td><code>"#{raw}"</code></td>
                  <td>#{eleIndex}</td>
@@ -49,6 +54,69 @@ exports.displayElementArr = (eleArr) ->
       $(tr).addClass('select') if e.ctrlKey
       $(tr).removeClass('select') if e.altKey
       updateStats() if e.ctrlKey || e.altKey
+
+  # 添加点击事件
+  $('#element_table tr').each (num, tr) ->
+    $(tr).click (e) =>
+      id = @attributes.id?.value
+      return if !id?
+      index = id.substring(id.lastIndexOf('_') + 1)
+
+      element = eleArr_[index]
+      first = element.parts[0]
+
+      $(".select").removeClass('select')
+      for part in element.parts
+        $("#part_#{part.index}").addClass('select')
+
+      $('html, body').animate({
+          scrollTop: $("#part_#{first.index}").offset().top - 100
+          }, 500)
+
+exports.displayQuestionArr = (questionArr) ->
+  questionArr_ = questionArr
+  if(!$?)
+    console.dir questionArr
+    console.table questionArr
+    return
+  results = []
+  results.push "<tr><th>no.</th><th>QuestiongType</th><th>raw</th><th>index</th><th>QuestionTypeName</th></tr>"
+  for question, i in questionArr
+    type = question.type
+    raw = combineQuestionElements(question)
+    questionIndex = question.index
+    questionName = QuestionTypeName[question.type]
+    html_ = """<tr id='question_#{i}'>
+                 <td>#{i}</td><td align='center'>#{type}</td>
+                 <td><code>"#{raw}"</code></td>
+                 <td>#{questionIndex}</td>
+                 <td align='center'><small>#{questionName}</small></td>
+              </tr>"""
+    results.push html_
+  table = document.getElementById('question_table')
+  table.innerHTML = results.join('')
+  $('tr').each (num, tr) ->
+    $(tr).mousemove (e) =>
+      $(tr).addClass('select') if e.ctrlKey
+      $(tr).removeClass('select') if e.altKey
+      # updateStats() if e.ctrlKey || e.altKey
+  $('#question_table tr').each (num, tr) ->
+    $(tr).click (e) =>
+      # console.error "stop here!"
+      id = @attributes.id?.value
+      return if !id?
+      index = id.substring(id.lastIndexOf('_') + 1)
+
+      question = questionArr_[index]
+      first = question.elements[0]
+
+      $(".select").removeClass('select')
+      for ele in question.elements
+        $("#element_#{ele.index}").addClass('select')
+
+      $('html, body').animate({
+          scrollTop: $("#element_#{first.index}").offset().top - 100
+          }, 500)
 
 
 updateStats = ->
@@ -92,9 +160,30 @@ EleTypeName = {
   '1050' : '解析    '
   '1060' : '点评    '
   '1070' : '难度    '
-}
+  }
+
+QuestionTypeName = {
+  '1000' : '没有类型'
+  '1010' : '单选题  '
+  '1020' : '问答题  '
+  }
+
+combineQuestionElements = (question) ->
+  results = []
+
+  results.push "【题号】 #{combineEleParts question.qNo.parts} " if question.qNo?
+  results.push "【题干】 #{html_encode combineEleParts(question.qText.parts)}<br>"
+  if question.qOptions.length > 0
+    for option in question.qOptions
+      results.push "&nbsp;&nbsp;&nbsp;&nbsp;选项 #{combineEleParts option.no.parts} #{html_encode combineEleParts option.text?.parts}<br>"
+  results.push "【答案】 #{html_encode combineEleParts(question.qAnswer.parts)}<br>" if question.qAnswer?
+  results.push "【解析】 #{html_encode combineEleParts(question.qAnalysis.parts)}<br>" if question.qAnalysis?
+  results.push "【点评】 #{html_encode combineEleParts(question.qCommen.parts)}<br>" if question.qCommen?
+  results.push "【难度】 #{html_encode combineEleParts(question.qDifficulty.parts)}<br>" if question.qDifficulty?
+  results.join('')
 
 combineEleParts = (partArr) ->
+  return '' if !partArr?
   results = []
   for part in partArr
     results.push part.raw

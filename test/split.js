@@ -1,4 +1,4 @@
-var EleType, Element, Part, PartType, Question, Sequence, countElementIndex, countIndex, fs, mergePart, mergeSeq, mergeSeqBySymbol, mergeSeqBySymbolRegex, parsePartArr, parseQElement, print, splitKeyCharWithPrefix, splitKeyWord, splitNum, splitSeqChar, splitSpace, splitStr, splitWord, splitWrap, superReplace, tohtml;
+var EleType, Element, Part, PartType, Question, QuestionType, Sequence, countElementIndex, countIndex, countQuestionIndex, fs, mergePart, mergeSeq, mergeSeqBySymbol, mergeSeqBySymbolRegex, parsePartArr, parseQElement, parseQuestion, parseQuestionArr, print, splitKeyCharWithPrefix, splitKeyWord, splitNum, splitSeqChar, splitSpace, splitStr, splitWord, splitWrap, superReplace, tohtml;
 
 fs = require('fs');
 
@@ -49,9 +49,10 @@ Element = (function() {
 })();
 
 Question = (function() {
-  function Question(type, elements, start1, end1, last1, next, index1) {
+  function Question(type, elements1, start1, end1, last1, next, index1) {
+    var e, j, len, ref, ref1, temObj;
     this.type = type;
-    this.elements = elements;
+    this.elements = elements1;
     this.start = start1;
     this.end = end1;
     this.last = last1;
@@ -60,6 +61,26 @@ Question = (function() {
     if (this.elements == null) {
       this.elements = [];
     }
+    this.qOptions = [];
+    temObj = {};
+    ref = this.elements;
+    for (j = 0, len = ref.length; j < len; j++) {
+      e = ref[j];
+      temObj[e.type] = e;
+      if (e.type === EleType.qOptionNo && ((ref1 = e.next) != null ? ref1.type : void 0) === EleType.qOption) {
+        this.qOptions.push({
+          'no': e,
+          'text': e.next
+        });
+      }
+    }
+    this.qNo = temObj[EleType.qNo];
+    this.qType = temObj[EleType.qType];
+    this.qText = temObj[EleType.qText];
+    this.qAnswer = temObj[EleType.qAnswer];
+    this.qAnalysis = temObj[EleType.qAnalysis];
+    this.qCommen = temObj[EleType.qCommen];
+    this.qDifficulty = temObj[EleType.qDifficulty];
   }
 
   return Question;
@@ -96,9 +117,16 @@ EleType = {
   qDifficulty: '1070'
 };
 
+QuestionType = {
+  none: '1000',
+  single: '1010',
+  question: '1020'
+};
+
 exports.run = function(paperText) {
-  var eleArr, j, k, len, len1, partArr, rootPart, s, seqArr, seqs;
+  var eleArr, j, k, len, len1, partArr, questionArr, rootPart, s, seqArr, seqs, time;
   console.log('run into run function');
+  time = Date.now();
   print();
   partArr = [];
   rootPart = new Part(PartType.none, paperText, null, null, 0);
@@ -142,8 +170,13 @@ exports.run = function(paperText) {
   eleArr = [];
   eleArr = parsePartArr(partArr);
   countElementIndex(eleArr);
-  console.table(eleArr);
+  console.log("=============  over time " + (Date.now() - time));
   tohtml.displayElementArr(eleArr);
+  questionArr = [];
+  questionArr = parseQuestionArr(eleArr);
+  countQuestionIndex(questionArr);
+  console.table(questionArr);
+  tohtml.displayQuestionArr(questionArr);
 };
 
 print = function() {
@@ -246,6 +279,33 @@ parsePartArr = function(partArr) {
   return eleArr;
 };
 
+parseQuestionArr = function(eleArr) {
+  var eTypeArr, ele, element, j, k, key, len, len1, questionArr, temObj, typeStr;
+  eTypeArr = [];
+  for (j = 0, len = eleArr.length; j < len; j++) {
+    element = eleArr[j];
+    eTypeArr.push(element.type);
+  }
+  typeStr = eTypeArr.join('');
+  questionArr = [];
+  parseQuestion(questionArr, QuestionType.single, '(1010,1020,1031,1030,1031,1030,1031,1030,1031,1030,1040,1050,1060,1070)', typeStr, eleArr);
+  parseQuestion(questionArr, QuestionType.question, '(1010,1020,1050,1060,1070)', typeStr, eleArr);
+  temObj = {};
+  for (k = 0, len1 = questionArr.length; k < len1; k++) {
+    ele = questionArr[k];
+    key = ele.type + ele.start + ele.end;
+    temObj[key] = ele;
+  }
+  questionArr = [];
+  for (key in temObj) {
+    questionArr.push(temObj[key]);
+  }
+  questionArr.sort(function(l, h) {
+    return l.start - h.start;
+  });
+  return questionArr;
+};
+
 
 /*
     解析试题单元
@@ -271,6 +331,36 @@ parseQElement = function(eleArr, eleType, symbol, typeStr, partArr) {
         parts.push(partArr[i]);
       }
       eleArr.push(new Element(eleType, parts, start, end, null, null, 0));
+      return sub;
+    };
+  })(this));
+};
+
+
+/*
+    解析试题
+ */
+
+parseQuestion = function(questionArr, questionType, symbol, typeStr, eleArr) {
+  var reg, sym, typeLength;
+  sym = symbol.replace(/,/g, '');
+  typeLength = EleType.none.length;
+  reg = new RegExp(sym, 'g');
+  superReplace(typeStr, sym, (function(_this) {
+    return function(match, sub, index) {
+      var elements, end, i, j, ref, ref1, start, subIndex, subMatchLength;
+      subMatchLength = sub.length / typeLength;
+      subIndex = sym.indexOf("(" + sub);
+      start = (index + subIndex) / typeLength;
+      end = start + subMatchLength;
+      if (start % 1 !== 0 || end % 1 !== 0) {
+        console.error("count index error!");
+      }
+      elements = [];
+      for (i = j = ref = start, ref1 = end; ref <= ref1 ? j < ref1 : j > ref1; i = ref <= ref1 ? ++j : --j) {
+        elements.push(eleArr[i]);
+      }
+      questionArr.push(new Question(questionType, elements, start, end, null, null, 0));
       return sub;
     };
   })(this));
@@ -414,7 +504,6 @@ mergeSeqBySymbolRegex = function(partArr, symbol, partType) {
   }
   posArr = [];
   for (m in matchObj) {
-    console.log(m);
     lastPos = 0;
     while (true) {
       index = typeStr.indexOf(m, lastPos);
@@ -453,7 +542,6 @@ mergeSeqBySymbolRegex = function(partArr, symbol, partType) {
     for (i = q = ref = pos.start, ref1 = pos.end; ref <= ref1 ? q < ref1 : q > ref1; i = ref <= ref1 ? ++q : --q) {
       s1.push(partArr[i].type);
     }
-    console.log(s1.join(' '));
     for (i = r = ref2 = pos.start, ref3 = pos.end; ref2 <= ref3 ? r < ref3 : r > ref3; i = ref2 <= ref3 ? ++r : --r) {
       part = partArr[i];
       raw = part.raw;
@@ -839,4 +927,24 @@ countElementIndex = function(eleArr) {
     last = ele;
   }
   return eleArr;
+};
+
+
+/*
+    计算Question索引
+ */
+
+countQuestionIndex = function(questionArr) {
+  var i, j, last, len, question;
+  last = null;
+  for (i = j = 0, len = questionArr.length; j < len; i = ++j) {
+    question = questionArr[i];
+    question.index = i;
+    if (last != null) {
+      last.next = question;
+    }
+    question.last = last;
+    last = question;
+  }
+  return questionArr;
 };
