@@ -1,4 +1,4 @@
-var EleType, Element, Part, PartType, Question, Sequence, countElementIndex, countIndex, fs, initSeqArr, mergePart, mergeSeq, mergeSeqBySymbol, mergeSeqBySymbolRegex, parsePartArr, parseQElement, print, seqArr, splitKeyCharWithPrefix, splitNum, splitSeq, splitSpace, splitStr, splitWord, splitWrap, superReplace, tohtml;
+var EleType, Element, Part, PartType, Question, Sequence, countElementIndex, countIndex, fs, mergePart, mergeSeq, mergeSeqBySymbol, mergeSeqBySymbolRegex, parsePartArr, parseQElement, print, splitKeyCharWithPrefix, splitKeyWord, splitNum, splitSeqChar, splitSpace, splitStr, splitWord, splitWrap, superReplace, tohtml;
 
 fs = require('fs');
 
@@ -86,6 +86,7 @@ PartType = {
 EleType = {
   none: '1000',
   qNo: '1010',
+  qType: '1011',
   qText: '1020',
   qOption: '1030',
   qOptionNo: '1031',
@@ -96,16 +97,41 @@ EleType = {
 };
 
 exports.run = function(paperText) {
-  var eleArr, partArr, rootPart;
+  var eleArr, j, k, len, len1, partArr, rootPart, s, seqArr, seqs;
   console.log('run into run function');
   print();
   partArr = [];
   rootPart = new Part(PartType.none, paperText, null, null, 0);
   partArr.push(rootPart);
   partArr = splitWord(partArr);
-  partArr = splitKeyWord(partArr);
-  partArr = splitSeqChar(partArr);
-  partArr = splitKeyChar(partArr);
+  seqArr = [];
+  seqArr.push(new Sequence(PartType.qOption, "选择题", null, null, 0));
+  seqArr.push(new Sequence(PartType.qQuestion, "问答题", null, null, 0));
+  seqArr.push(new Sequence(PartType.qQuestion, "解答题", null, null, 0));
+  seqArr.push(new Sequence(PartType.qAnswer, "答案", null, null, 0));
+  seqArr.push(new Sequence(PartType.qAnswer, "证明", null, null, 0));
+  seqArr.push(new Sequence(PartType.qAnalysis, "解析", null, null, 0));
+  seqArr.push(new Sequence(PartType.qAnalysis, "解", null, null, 0));
+  seqArr.push(new Sequence(PartType.qCommen, "点评", null, null, 0));
+  seqArr.push(new Sequence(PartType.qCommen, "评论", null, null, 0));
+  seqArr.push(new Sequence(PartType.qDifficulty, "难度", null, null, 0));
+  partArr = splitKeyWord(seqArr, partArr);
+  seqArr = [];
+  seqArr.push(new Sequence(PartType.spBrackets, '【', null, null, 0));
+  seqArr.push(new Sequence(PartType.spBrackets, '】', null, null, 0));
+  partArr = splitKeyWord(seqArr, partArr);
+  seqArr = [];
+  seqs = '一二三四五六七八九十';
+  for (j = 0, len = seqs.length; j < len; j++) {
+    s = seqs[j];
+    seqArr.push(new Sequence(PartType.sqText, s, null, null, 0));
+  }
+  seqs = 'ABCDEFGHIJKLMN';
+  for (k = 0, len1 = seqs.length; k < len1; k++) {
+    s = seqs[k];
+    seqArr.push(new Sequence(PartType.sqOption, s, null, null, 0));
+  }
+  partArr = splitSeqChar(seqArr, partArr);
   partArr = splitWrap(partArr);
   partArr = splitNum(partArr);
   partArr = splitSpace(partArr);
@@ -149,6 +175,7 @@ mergeSeq = function(partArr) {
   partArr = mergeSeqBySymbolRegex(partArr, '1051;1011{0,10};1090;1011{0,10};1051', PartType.qAnalysis);
   partArr = mergeSeqBySymbolRegex(partArr, '1051;1011{0,10};1100;1011{0,10};1051', PartType.qCommen);
   partArr = mergeSeqBySymbolRegex(partArr, '1051;1011{0,10};1110;1011{0,10};1051', PartType.qDifficulty);
+  partArr = mergeSeqBySymbolRegex(partArr, '1010;1010+', PartType.wrap);
   partArr = mergeSeqBySymbol(partArr, '1020,1010,1020,1010,1020', PartType.text);
   partArr = mergeSeqBySymbolRegex(partArr, '1011;1011+', PartType.space);
   partArr = mergeSeqBySymbolRegex(partArr, '1011;1020', PartType.text);
@@ -156,13 +183,10 @@ mergeSeq = function(partArr) {
   partArr = mergeSeqBySymbol(partArr, '1050,1050', PartType.text);
   partArr = mergeSeqBySymbol(partArr, '1020,1020', PartType.text);
   partArr = mergeSeqBySymbol(partArr, '1020,1040,1020', PartType.text);
-  partArr = mergeSeqBySymbol(partArr, '1020,1030,1020', PartType.text);
-  partArr = mergeSeqBySymbol(partArr, '1020,1040,1020', PartType.text);
   partArr = mergeSeqBySymbol(partArr, '1020,1060,1020', PartType.text);
   partArr = mergeSeqBySymbol(partArr, '1020,1080,1020', PartType.text);
   partArr = mergeSeqBySymbol(partArr, '1020,1090,1020', PartType.text);
   partArr = mergeSeqBySymbol(partArr, '1011,1040,1020', PartType.text);
-  partArr = mergeSeqBySymbol(partArr, '1011,1050,1020', PartType.text);
   partArr = mergeSeqBySymbol(partArr, '1020,1030,1011', PartType.text);
   partArr = mergeSeqBySymbol(partArr, '1020,1030,1020', PartType.text);
   return partArr;
@@ -183,13 +207,25 @@ parsePartArr = function(partArr) {
   typeStr = pTypeArr.join('');
   eleArr = [];
   parseQElement(eleArr, EleType.qNo, '1010,(1030,)1020,1010', typeStr, partArr);
+  parseQElement(eleArr, EleType.qNo, '1010,(1030,)1020,1050', typeStr, partArr);
+  parseQElement(eleArr, EleType.qNo, '(1030,)1020,1060,1010', typeStr, partArr);
+  parseQElement(eleArr, EleType.qNo, '1010,(1040,)1020,1070,1010', typeStr, partArr);
+  parseQElement(eleArr, EleType.qType, '1030,1020,(1060,)1010', typeStr, partArr);
+  parseQElement(eleArr, EleType.qType, '1010,1040,1020,(1070,)1010', typeStr, partArr);
   parseQElement(eleArr, EleType.qText, '1010,1030,(1020,)1010', typeStr, partArr);
+  parseQElement(eleArr, EleType.qText, '1010,1030,(1020,)1050', typeStr, partArr);
+  parseQElement(eleArr, EleType.qOptionNo, '1010,(1050,)1020,1010,1050', typeStr, partArr);
+  parseQElement(eleArr, EleType.qOptionNo, '1010,1011,(1050,)1020,1050', typeStr, partArr);
   parseQElement(eleArr, EleType.qOptionNo, '1010,(1050,)1020,1050', typeStr, partArr);
   parseQElement(eleArr, EleType.qOptionNo, '1050,1020,(1050,)1020', typeStr, partArr);
+  parseQElement(eleArr, EleType.qOptionNo, '1020,(1050,)1020,1050,1020', typeStr, partArr);
+  parseQElement(eleArr, EleType.qOption, '1010,1050,(1020,)1010,1050', typeStr, partArr);
+  parseQElement(eleArr, EleType.qOption, '1010,1011,1050,(1020,)1050', typeStr, partArr);
   parseQElement(eleArr, EleType.qOption, '1010,1050,(1020,)1050', typeStr, partArr);
   parseQElement(eleArr, EleType.qOption, '1020,1050,(1020,)1050', typeStr, partArr);
-  parseQElement(eleArr, EleType.qOption, '1020,1050,(1020,)1050', typeStr, partArr);
   parseQElement(eleArr, EleType.qOption, '1020,1050,(1020,)1010', typeStr, partArr);
+  parseQElement(eleArr, EleType.qOption, '1020,1050,(1020,)1050,1020', typeStr, partArr);
+  parseQElement(eleArr, EleType.qAnswer, '1080,(1011,1050,1011,)1010,', typeStr, partArr);
   parseQElement(eleArr, EleType.qAnswer, '1080,(1011,1050,)1010', typeStr, partArr);
   parseQElement(eleArr, EleType.qAnalysis, '1010,1090,(1020,)1010', typeStr, partArr);
   parseQElement(eleArr, EleType.qCommen, '1010,1100,(1020,)1010', typeStr, partArr);
@@ -385,7 +421,7 @@ mergeSeqBySymbolRegex = function(partArr, symbol, partType) {
       if (index === -1) {
         break;
       }
-      lastPos = index + 1;
+      lastPos = index + typeLength;
       posArr.push({
         start: index / typeLength,
         end: index / typeLength + m.length / typeLength
@@ -646,7 +682,7 @@ splitWord = function(partArr) {
     分割序号、关键字、长度大于一的关键字用正则匹配
  */
 
-splitSeq = function(partArr) {
+splitKeyWord = function(seqArr, partArr) {
   var arr, j, k, len, len1, len2, matchs, n, part, reg, s, seq, seqRegStr, seqraw, seqsArr, ss, ssArr, temArr;
   arr = partArr;
   for (j = 0, len = seqArr.length; j < len; j++) {
@@ -656,42 +692,63 @@ splitSeq = function(partArr) {
     if ((seqraw == null) || seqraw.length === 0) {
       continue;
     }
-    if (seqraw.length === 1) {
-      temArr = splitKeyCharWithPrefix("\n| ", seqraw, arr, seq.type);
-      console.error('stop here!');
-    } else {
-      for (k = 0, len1 = arr.length; k < len1; k++) {
-        part = arr[k];
-        if (part.type !== PartType.none) {
-          temArr.push(part);
-          continue;
-        }
+    for (k = 0, len1 = arr.length; k < len1; k++) {
+      part = arr[k];
+      if (part.type !== PartType.none) {
+        temArr.push(part);
+        continue;
+      }
+      seqRegStr = '';
+      if (seqraw.length === 1) {
+        seqRegStr = seqraw;
+      } else {
         seqsArr = seqraw.split('');
         seqRegStr = seqsArr.join(' {0,10}');
-        reg = new RegExp(seqRegStr, 'g');
-        matchs = part.raw.match(reg);
-        if (matchs == null) {
-          temArr.push(part);
+      }
+      reg = new RegExp(seqRegStr, 'g');
+      matchs = part.raw.match(reg);
+      if (matchs == null) {
+        temArr.push(part);
+        continue;
+      }
+      ss = part.raw.replace(new RegExp("(" + seqRegStr + ")", 'g'), function(mainStr, sub) {
+        return seqraw + "-" + seqraw + sub + seqraw + "-" + seqraw;
+      });
+      ssArr = ss.split(seqraw + "-" + seqraw);
+      for (n = 0, len2 = ssArr.length; n < len2; n++) {
+        s = ssArr[n];
+        if (s.length < 1) {
           continue;
         }
-        ss = part.raw.replace(new RegExp("(" + seqRegStr + ")", 'g'), function(num, sub) {
-          return seqraw + "-" + seqraw + sub + seqraw + "-" + seqraw;
-        });
-        ssArr = ss.split(seqraw + "-" + seqraw);
-        for (n = 0, len2 = ssArr.length; n < len2; n++) {
-          s = ssArr[n];
-          if (s.length < 1) {
-            continue;
-          }
-          reg.lastIndex = 0;
-          if (reg.test(s)) {
-            temArr.push(new Part(seq.type, s, null, null, 0));
-          } else {
-            temArr.push(new Part(PartType.none, s, null, null, 0));
-          }
+        reg.lastIndex = 0;
+        if (reg.test(s)) {
+          temArr.push(new Part(seq.type, s, null, null, 0));
+        } else {
+          temArr.push(new Part(PartType.none, s, null, null, 0));
         }
       }
     }
+    arr = temArr;
+  }
+  return arr;
+};
+
+
+/*
+    分割序号、关键字、长度大于一的关键字用正则匹配
+ */
+
+splitSeqChar = function(seqArr, partArr) {
+  var arr, j, len, seq, seqraw, temArr;
+  arr = partArr;
+  for (j = 0, len = seqArr.length; j < len; j++) {
+    seq = seqArr[j];
+    temArr = [];
+    seqraw = seq.raw;
+    if ((seqraw == null) || seqraw.length === 0) {
+      continue;
+    }
+    temArr = splitKeyCharWithPrefix("\n| ", seqraw, arr, seq.type);
     arr = temArr;
   }
   return arr;
@@ -705,7 +762,6 @@ splitSeq = function(partArr) {
 splitKeyCharWithPrefix = function(prefix, keyChar, partArr, partType) {
   var arr, i, j, k, len, len1, matchs, part, raw, reg, repRaw, s, spArr;
   arr = [];
-  reg = new RegExp("[" + prefix + "](" + keyChar + ")", 'g');
   for (i = j = 0, len = partArr.length; j < len; i = ++j) {
     part = partArr[i];
     raw = part.raw;
@@ -713,6 +769,7 @@ splitKeyCharWithPrefix = function(prefix, keyChar, partArr, partType) {
       arr.push(part);
       continue;
     }
+    reg = new RegExp("[" + prefix + "](" + keyChar + ")", 'g');
     matchs = raw.match(reg);
     if (matchs == null) {
       arr.push(part);
@@ -783,59 +840,3 @@ countElementIndex = function(eleArr) {
   }
   return eleArr;
 };
-
-seqArr = [];
-
-initSeqArr = function() {
-  var index, j, k, last, len, len1, len2, n, results, s, seqs, sequence;
-  seqArr.push(new Sequence(PartType.qOption, "选择题", null, null, index));
-  seqArr.push(new Sequence(PartType.qQuestion, "问答题", null, null, index));
-  seqArr.push(new Sequence(PartType.qQuestion, "解答题", null, null, index));
-  seqArr.push(new Sequence(PartType.qAnswer, "答案", null, null, index));
-  seqArr.push(new Sequence(PartType.qAnswer, "证明", null, null, index));
-  seqArr.push(new Sequence(PartType.qAnalysis, "解析", null, null, index));
-  seqArr.push(new Sequence(PartType.qAnalysis, "解", null, null, index));
-  seqArr.push(new Sequence(PartType.qCommen, "点评", null, null, index));
-  seqArr.push(new Sequence(PartType.qCommen, "评论", null, null, index));
-  seqArr.push(new Sequence(PartType.qDifficulty, "难度", null, null, index));
-  seqs = '一二三四五六七八九十';
-  last = null;
-  for (index = j = 0, len = seqs.length; j < len; index = ++j) {
-    s = seqs[index];
-    console.log("s = " + s);
-    sequence = new Sequence(PartType.sqText, s, last, null, index);
-    seqArr.push(sequence);
-    if (last != null) {
-      last.next = sequence;
-    }
-    last = sequence;
-  }
-  seqs = 'ABCDEFGHIJKLMN';
-  last = null;
-  for (index = k = 0, len1 = seqs.length; k < len1; index = ++k) {
-    s = seqs[index];
-    console.log("s = " + s);
-    sequence = new Sequence(PartType.sqOption, s, last, null, index);
-    seqArr.push(sequence);
-    if (last != null) {
-      last.next = sequence;
-    }
-    last = sequence;
-  }
-  seqs = '【】';
-  last = null;
-  results = [];
-  for (index = n = 0, len2 = seqs.length; n < len2; index = ++n) {
-    s = seqs[index];
-    console.log("s = " + s);
-    sequence = new Sequence(PartType.spBrackets, s, last, null, index);
-    seqArr.push(sequence);
-    if (last != null) {
-      last.next = sequence;
-    }
-    results.push(last = sequence);
-  }
-  return results;
-};
-
-initSeqArr();

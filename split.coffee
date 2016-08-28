@@ -39,6 +39,7 @@ PartType = {
 EleType = {
   none            : '1000'  # 没有类型
   qNo             : '1010'  # 题号
+  qType           : '1011'  # 题型
   qText           : '1020'  # 题干
   qOption         : '1030'  # 选项
   qOptionNo       : '1031'  # 选项号
@@ -51,20 +52,43 @@ EleType = {
 exports.run = (paperText) ->
   console.log 'run into run function'
   print()
-
   partArr = []
-
   rootPart = new Part(PartType.none, paperText, null, null, 0)
   partArr.push rootPart
 
   # 分割单词、文本
   partArr = splitWord partArr
+
   # 分割序号、关键字、词
-  # partArr = splitSeq partArr
   # 分割关键词
-  partArr = splitKeyWord partArr
-  partArr = splitSeqChar partArr
-  partArr = splitKeyChar partArr
+  seqArr = []
+  seqArr.push new Sequence(PartType.qOption, "选择题", null, null, 0)
+  seqArr.push new Sequence(PartType.qQuestion, "问答题", null, null, 0)
+  seqArr.push new Sequence(PartType.qQuestion, "解答题", null, null, 0)
+  seqArr.push new Sequence(PartType.qAnswer, "答案", null, null, 0)
+  seqArr.push new Sequence(PartType.qAnswer, "证明", null, null, 0)
+  seqArr.push new Sequence(PartType.qAnalysis, "解析", null, null, 0)
+  seqArr.push new Sequence(PartType.qAnalysis, "解", null, null, 0)
+  seqArr.push new Sequence(PartType.qCommen, "点评", null, null, 0)
+  seqArr.push new Sequence(PartType.qCommen, "评论", null, null, 0)
+  seqArr.push new Sequence(PartType.qDifficulty, "难度", null, null, 0)
+  partArr = splitKeyWord seqArr, partArr
+
+  seqArr = []
+  seqArr.push new Sequence(PartType.spBrackets, '【', null, null, 0)
+  seqArr.push new Sequence(PartType.spBrackets, '】', null, null, 0)
+  partArr = splitKeyWord seqArr, partArr
+
+  # 大题号、序号、选项号
+  seqArr = []
+  seqs = '一二三四五六七八九十'
+  for s in seqs
+    seqArr.push new Sequence(PartType.sqText, s, null, null, 0)
+  seqs = 'ABCDEFGHIJKLMN'
+  for s in seqs
+    seqArr.push new Sequence(PartType.sqOption, s, null, null, 0)
+  partArr = splitSeqChar seqArr, partArr
+
 # 分割换行符
   partArr = splitWrap partArr
 # 分割数字
@@ -113,7 +137,6 @@ mergeSeq = (partArr) ->
 
   # 图片rId237
   partArr = mergeSeqBySymbol(partArr, '1020,1020,1030', PartType.text)
-
   # 文本间的换行
   partArr = mergeSeqBySymbolRegex(partArr, '1020;1011{0,10};1010;1011{0,10};1020', PartType.text)
 
@@ -130,6 +153,8 @@ mergeSeq = (partArr) ->
   # 合并序号与关键字前面的空格
   # partArr = mergeSpaceBeforeKeyWords partArr
 
+  # 连续的换行
+  partArr = mergeSeqBySymbolRegex(partArr, '1010;1010+', PartType.wrap)
   # 连续的文本+换行
   partArr = mergeSeqBySymbol(partArr, '1020,1010,1020,1010,1020', PartType.text)
   # 合并空格
@@ -140,12 +165,6 @@ mergeSeq = (partArr) ->
   partArr = mergeSeqBySymbol(partArr, '1050,1050', PartType.text)
   partArr = mergeSeqBySymbol(partArr, '1020,1020', PartType.text)
 
-  # 夹在文本中的题号，是文本？
-  partArr = mergeSeqBySymbol(partArr, '1020,1040,1020', PartType.text)
-  # 夹在文本中的序号，是文本？
-  partArr = mergeSeqBySymbol(partArr, '1020,1030,1020', PartType.text)
-  # 夹在文本中的序号，是文本？
-  # partArr = mergeSeqBySymbol(partArr, '1020,1050,1020', PartType.text)
   # 夹在文本中的关键字，是文本？
   partArr = mergeSeqBySymbol(partArr, '1020,1040,1020', PartType.text)
   partArr = mergeSeqBySymbol(partArr, '1020,1060,1020', PartType.text)
@@ -154,7 +173,7 @@ mergeSeq = (partArr) ->
 
   # 下面的需要根据上文判断
   partArr = mergeSeqBySymbol(partArr, '1011,1040,1020', PartType.text)
-  partArr = mergeSeqBySymbol(partArr, '1011,1050,1020', PartType.text)
+  # partArr = mergeSeqBySymbol(partArr, '1011,1050,1020', PartType.text)
   partArr = mergeSeqBySymbol(partArr, '1020,1030,1011', PartType.text)
   partArr = mergeSeqBySymbol(partArr, '1020,1030,1020', PartType.text)
 
@@ -172,18 +191,30 @@ parsePartArr = (partArr) ->
   eleArr = []
   # 题号
   parseQElement(eleArr, EleType.qNo, '1010,(1030,)1020,1010', typeStr, partArr)
+  parseQElement(eleArr, EleType.qNo, '1010,(1030,)1020,1050', typeStr, partArr)
+  parseQElement(eleArr, EleType.qNo, '(1030,)1020,1060,1010', typeStr, partArr)
+  parseQElement(eleArr, EleType.qNo, '1010,(1040,)1020,1070,1010', typeStr, partArr)
+  # 题型
+  parseQElement(eleArr, EleType.qType, '1030,1020,(1060,)1010', typeStr, partArr)
+  parseQElement(eleArr, EleType.qType, '1010,1040,1020,(1070,)1010', typeStr, partArr)
   # 题干
   parseQElement(eleArr, EleType.qText, '1010,1030,(1020,)1010', typeStr, partArr)
+  parseQElement(eleArr, EleType.qText, '1010,1030,(1020,)1050', typeStr, partArr)
   # 选项号
+  parseQElement(eleArr, EleType.qOptionNo, '1010,(1050,)1020,1010,1050', typeStr, partArr)
+  parseQElement(eleArr, EleType.qOptionNo, '1010,1011,(1050,)1020,1050', typeStr, partArr)
   parseQElement(eleArr, EleType.qOptionNo, '1010,(1050,)1020,1050', typeStr, partArr)
   parseQElement(eleArr, EleType.qOptionNo, '1050,1020,(1050,)1020', typeStr, partArr)
-  # parseQElement(eleArr, EleType.qOptionNo, '1050,1020,(1050,)1020,1010', typeStr, partArr)
+  parseQElement(eleArr, EleType.qOptionNo, '1020,(1050,)1020,1050,1020', typeStr, partArr)
   # 选项
+  parseQElement(eleArr, EleType.qOption, '1010,1050,(1020,)1010,1050', typeStr, partArr)
+  parseQElement(eleArr, EleType.qOption, '1010,1011,1050,(1020,)1050', typeStr, partArr)
   parseQElement(eleArr, EleType.qOption, '1010,1050,(1020,)1050', typeStr, partArr)
   parseQElement(eleArr, EleType.qOption, '1020,1050,(1020,)1050', typeStr, partArr)
-  parseQElement(eleArr, EleType.qOption, '1020,1050,(1020,)1050', typeStr, partArr)
   parseQElement(eleArr, EleType.qOption, '1020,1050,(1020,)1010', typeStr, partArr)
+  parseQElement(eleArr, EleType.qOption, '1020,1050,(1020,)1050,1020', typeStr, partArr)
   # 答案
+  parseQElement(eleArr, EleType.qAnswer, '1080,(1011,1050,1011,)1010,', typeStr, partArr)
   parseQElement(eleArr, EleType.qAnswer, '1080,(1011,1050,)1010', typeStr, partArr)
   # 解析
   parseQElement(eleArr, EleType.qAnalysis, '1010,1090,(1020,)1010', typeStr, partArr)
@@ -352,7 +383,7 @@ mergeSeqBySymbolRegex = (partArr, symbol, partType) ->
     while(true)
       index = typeStr.indexOf(m, lastPos)
       break if index == -1
-      lastPos = index + 1
+      lastPos = index + typeLength
       posArr.push { start : index / typeLength, end : index / typeLength + m.length / typeLength }
 
   # 排序
@@ -529,44 +560,52 @@ splitWord = (partArr) ->
 ###
     分割序号、关键字、长度大于一的关键字用正则匹配
 ###
-splitSeq = (partArr) ->
+splitKeyWord = (seqArr, partArr) ->
   arr = partArr
   for seq in seqArr
     temArr = []
     seqraw = seq.raw
     continue if !seqraw? || seqraw.length == 0
 
-    if seqraw.length == 1
-      # 关键字只有一个字符的时候
-      temArr = splitKeyCharWithPrefix("\n| ", seqraw, arr, seq.type)
-      console.error 'stop here!'
-    else
-      # 当关键字有多个字符的时候
-      for part in arr
-        if part.type != PartType.none
-          temArr.push part
-          continue
+    for part in arr
+      if part.type != PartType.none
+        temArr.push part
+        continue
+
+      seqRegStr = ''
+      if seqraw.length == 1
+        seqRegStr = seqraw
+      else  # 对于长度大于一的关键字 之间可以有 0 - 10 个空格 关键字之间的空格会被去掉
         seqsArr = seqraw.split('')
-
-        # 关键字之间可以有 0 - 10 个空格 关键字之间的空格会被去掉
         seqRegStr = seqsArr.join(' {0,10}')
-        reg = new RegExp(seqRegStr, 'g')
-        matchs = part.raw.match reg
-        if !matchs?
-          temArr.push part
-          continue
-        ss = part.raw.replace new RegExp("(#{seqRegStr})", 'g'), (num, sub) ->
-          return "#{seqraw}-#{seqraw}#{sub}#{seqraw}-#{seqraw}"
-        ssArr = ss.split("#{seqraw}-#{seqraw}")
-        for s in ssArr
-          continue if s.length < 1
-          reg.lastIndex = 0
-          if reg.test(s)
-            temArr.push new Part(seq.type, s, null, null, 0 )
-          else
-            temArr.push new Part(PartType.none, s, null, null, 0 )
-        # throw new Error("stop here !")
 
+      reg = new RegExp(seqRegStr, 'g')
+      matchs = part.raw.match reg
+      if !matchs?
+        temArr.push part
+        continue
+      ss = part.raw.replace new RegExp("(#{seqRegStr})", 'g'), (mainStr, sub) ->
+        return "#{seqraw}-#{seqraw}#{sub}#{seqraw}-#{seqraw}"
+      ssArr = ss.split("#{seqraw}-#{seqraw}")
+      for s in ssArr
+        continue if s.length < 1
+        reg.lastIndex = 0
+        if reg.test(s)
+          temArr.push new Part(seq.type, s, null, null, 0 )
+        else
+          temArr.push new Part(PartType.none, s, null, null, 0 )
+    arr = temArr
+  arr
+###
+    分割序号、关键字、长度大于一的关键字用正则匹配
+###
+splitSeqChar = (seqArr, partArr) ->
+  arr = partArr
+  for seq in seqArr
+    temArr = []
+    seqraw = seq.raw
+    continue if !seqraw? || seqraw.length == 0
+    temArr = splitKeyCharWithPrefix("\n| ", seqraw, arr, seq.type)
     arr = temArr
   arr
 
@@ -575,7 +614,6 @@ splitSeq = (partArr) ->
 ###
 splitKeyCharWithPrefix = (prefix, keyChar, partArr, partType) ->
   arr = []
-  reg = new RegExp("[#{prefix}](#{keyChar})", 'g')
   for part, i in partArr
     raw = part.raw
 
@@ -583,6 +621,7 @@ splitKeyCharWithPrefix = (prefix, keyChar, partArr, partType) ->
       arr.push part
       continue
 
+    reg = new RegExp("[#{prefix}](#{keyChar})", 'g')
     matchs = raw.match reg
     if !matchs?
       arr.push part
@@ -627,46 +666,3 @@ countElementIndex = (eleArr) ->
     ele.last = last
     last = ele
   eleArr
-
-# 序号
-seqArr = []
-# 初始化序号
-initSeqArr = ->
-  seqArr.push new Sequence(PartType.qOption, "选择题", null, null, index)
-  seqArr.push new Sequence(PartType.qQuestion, "问答题", null, null, index)
-  seqArr.push new Sequence(PartType.qQuestion, "解答题", null, null, index)
-  seqArr.push new Sequence(PartType.qAnswer, "答案", null, null, index)
-  seqArr.push new Sequence(PartType.qAnswer, "证明", null, null, index)
-  seqArr.push new Sequence(PartType.qAnalysis, "解析", null, null, index)
-  seqArr.push new Sequence(PartType.qAnalysis, "解", null, null, index)
-  seqArr.push new Sequence(PartType.qCommen, "点评", null, null, index)
-  seqArr.push new Sequence(PartType.qCommen, "评论", null, null, index)
-  seqArr.push new Sequence(PartType.qDifficulty, "难度", null, null, index)
-
-  seqs = '一二三四五六七八九十'
-  last = null
-  for s, index in seqs
-    console.log "s = #{s}"
-    sequence = new Sequence(PartType.sqText, s, last, null, index)
-    seqArr.push sequence
-    last.next = sequence if last?
-    last = sequence
-  seqs = 'ABCDEFGHIJKLMN'
-  last = null
-  for s, index in seqs
-    console.log "s = #{s}"
-    sequence = new Sequence(PartType.sqOption, s, last, null, index)
-    seqArr.push sequence
-    last.next = sequence if last?
-    last = sequence
-  seqs = '【】'
-  last = null
-  for s, index in seqs
-    console.log "s = #{s}"
-    sequence = new Sequence(PartType.spBrackets, s, last, null, index)
-    seqArr.push sequence
-    last.next = sequence if last?
-    last = sequence
-
-initSeqArr()
-# console.dir seqArr

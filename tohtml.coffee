@@ -84,6 +84,7 @@ PartTypeName = {
 EleTypeName = {
   '1000' : '没有类型'
   '1010' : '题号    '
+  '1011' : '题型    '
   '1020' : '题干    '
   '1030' : '选项    '
   '1031' : '选项号  '
@@ -126,4 +127,17 @@ html_decode = (str) ->
 readPaperFromTextarea = ->
   textarea = $('#text_input')[0]
   paperText = textarea.value
+  localStorage.savePaperData = paperText
+  split.run(paperText)
+
+loadDataFromStorage = ->
+  textarea = $('#text_input')[0]
+  textarea.value = localStorage.savePaperData
+  paperText = textarea.value
+  split.run(paperText)
+
+clearDataFromStorage = ->
+  textarea = $('#text_input')[0]
+  textarea.value = localStorage.savePaperData = ''
+  paperText = fs.readFileSync()
   split.run(paperText)

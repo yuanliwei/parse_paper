@@ -1,4 +1,4 @@
-var EleTypeName, PartTypeName, combineEleParts, html_decode, html_encode, readPaperFromTextarea, updateStats;
+var EleTypeName, PartTypeName, clearDataFromStorage, combineEleParts, html_decode, html_encode, loadDataFromStorage, readPaperFromTextarea, updateStats;
 
 exports.displayPartArr = function(partArr) {
   var html_, i, j, len, part, results, table;
@@ -108,6 +108,7 @@ PartTypeName = {
 EleTypeName = {
   '1000': '没有类型',
   '1010': '题号    ',
+  '1011': '题型    ',
   '1020': '题干    ',
   '1030': '选项    ',
   '1031': '选项号  ',
@@ -163,5 +164,22 @@ readPaperFromTextarea = function() {
   var paperText, textarea;
   textarea = $('#text_input')[0];
   paperText = textarea.value;
+  localStorage.savePaperData = paperText;
+  return split.run(paperText);
+};
+
+loadDataFromStorage = function() {
+  var paperText, textarea;
+  textarea = $('#text_input')[0];
+  textarea.value = localStorage.savePaperData;
+  paperText = textarea.value;
+  return split.run(paperText);
+};
+
+clearDataFromStorage = function() {
+  var paperText, textarea;
+  textarea = $('#text_input')[0];
+  textarea.value = localStorage.savePaperData = '';
+  paperText = fs.readFileSync();
   return split.run(paperText);
 };

@@ -28,6 +28,9 @@
   <body onload="start()">
     <textarea name="name" id="text_input" rows="8" cols="40" onchange="readPaperFromTextarea()"></textarea>
     <textarea name="name" id="output" rows="8" cols="40"></textarea>
+    <br>
+    <input type="button" name="loadData" value="loadData" onclick="loadDataFromStorage()">
+    <input type="button" name="clearData" value="clearData" onclick="clearDataFromStorage()">
     <pre>
       数学试题分析报告
       1、 选择题
